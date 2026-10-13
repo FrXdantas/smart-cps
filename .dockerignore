@@ -1,0 +1,20 @@
+# Só entra na imagem o que o Dockerfile copia; o resto fica fora do contexto.
+.venv/
+.env
+.env.*
+!.env.example
+data/
+build_verify/
+backend/build_verify/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+*.log
+hs_err_pid*.log
+dist/
+*.tar
+*.tar.gz
+tools/esbmc
+tools/jbmc
+tools/kotlinc
+.git/

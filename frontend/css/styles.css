@@ -1,0 +1,126 @@
+/* SMART ESBMC/JBMC — tema claro, cores predominantes em azul.
+   Sobrescreve o azul do Bootstrap para a identidade do projeto. */
+
+:root {
+  --bs-primary: #155080;
+  --bs-primary-rgb: 21, 80, 128;
+  --brand-dark: #0b3d66;
+  --brand-light: #eef4f9;
+}
+
+body {
+  background-color: #f7f9fb;
+  color: #1a1a1a;
+}
+
+/* Navbar e botões primários no azul da marca */
+.bg-primary {
+  background-color: var(--brand-dark) !important;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: var(--brand-dark);
+  --bs-btn-hover-border-color: var(--brand-dark);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: var(--bs-primary);
+  --bs-btn-hover-border-color: var(--bs-primary);
+}
+
+.text-primary {
+  color: var(--bs-primary) !important;
+}
+
+.card {
+  border: 1px solid #e3e9ef;
+  border-radius: .6rem;
+}
+
+.card-header {
+  border-bottom: 1px solid #e3e9ef;
+}
+
+.border-dashed {
+  border: 1px dashed #c3d2df !important;
+  background: var(--brand-light);
+}
+
+/* Badges de ferramenta */
+.tool-badge {
+  font-weight: 500;
+}
+
+/* SPA */
+.target-row { cursor: pointer; }
+.history-item { cursor: pointer; }
+.history-item:hover, .target-row:hover { background-color: var(--brand-light); }
+
+.explanation {
+  background: var(--brand-light);
+  border: 1px solid #d6e2ec;
+  border-radius: .4rem;
+  padding: 12px;
+  white-space: pre-wrap;
+  font-size: .85rem;
+  margin-bottom: 0;
+  color: #1a1a1a;
+}
+
+#progress-bar { transition: width .15s linear; }
+#repair-bar { transition: width .3s ease; }
+
+/* Histórico: item ativo (run exibida) */
+.history-item.active {
+  background-color: var(--brand-light);
+  border-left: 4px solid var(--bs-primary);
+  font-weight: 500;
+}
+
+/* Navegador de diretórios */
+.browser-list {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid #e3e9ef;
+  border-radius: .4rem;
+}
+.browser-dir { border: 0; }
+
+/* Pop-up de configuração do LLM (overlay próprio, sem depender do JS do Bootstrap) */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  background: rgba(11, 61, 102, .45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4rem 1rem 1rem;
+}
+.settings-overlay.d-none { display: none !important; }
+.settings-dialog {
+  width: 100%;
+  max-width: 460px;
+}
+
+/* Diff de reparo: código original vs. corrigido, lado a lado */
+.code-pane {
+  background: var(--brand-light);
+  border: 1px solid #d6e2ec;
+  border-radius: .4rem;
+  padding: 8px 10px;
+  font-size: .78rem;
+  line-height: 1.35;
+  white-space: pre;
+  overflow: auto;
+  max-height: 360px;
+  margin-bottom: 0;
+}
+.code-pane.code-fixed {
+  background: #eef8f0;
+  border-color: #bfe3c8;
+}

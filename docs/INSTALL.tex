@@ -1,0 +1,323 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=2cm]{geometry}
+\renewcommand{\contentsname}{Sum\'ario}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[table]{xcolor}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{ragged2e}
+\usepackage{listings}
+\usepackage{amssymb}
+\usepackage[hidelinks,colorlinks=true,linkcolor=azulesc,urlcolor=azulesc]{hyperref}
+
+% ---- Cores ----
+\definecolor{azulesc}{HTML}{0B3D66}
+\definecolor{azulmed}{HTML}{155080}
+\definecolor{codebg}{HTML}{F4F6F8}
+\definecolor{linhagrid}{HTML}{9BB7CC}
+\definecolor{verdebox}{HTML}{2E7D32}
+\definecolor{verdebg}{HTML}{EEF7EF}
+
+% ---- Titulos de secao (sem titlesec) ----
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{0pt}%
+  {-3.5ex \@plus -1ex \@minus -.2ex}{2.3ex \@plus.2ex}%
+  {\normalfont\Large\bfseries\color{azulesc}}}
+\renewcommand\subsection{\@startsection{subsection}{2}{0pt}%
+  {-3.25ex\@plus -1ex \@minus -.2ex}{1.5ex \@plus .2ex}%
+  {\normalfont\large\bfseries\color{azulmed}}}
+\makeatother
+
+% ---- Codigo ----
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{linhagrid},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  xleftmargin=4pt,
+  framexleftmargin=4pt,
+  aboveskip=8pt,
+  belowskip=8pt
+}
+
+% ---- Colunas de tabela ----
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcommand{\hc}[1]{\textcolor{white}{\textbf{#1}}}
+\arrayrulecolor{linhagrid}
+\renewcommand{\arraystretch}{1.25}
+
+% ---- Caixa de destaque ----
+\newcommand{\nota}[1]{%
+  \begin{center}\colorbox{verdebg}{\parbox{0.95\linewidth}{%
+  \color{verdebox}#1}}\end{center}}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+
+\begin{document}
+
+% ===================== CAPA =====================
+\begin{titlepage}
+\vspace*{3cm}
+\begin{center}
+{\color{azulesc}\Huge\bfseries SMART-JBMC}\\[10pt]
+{\color{azulmed}\LARGE Guia de Instala\c{c}\~ao e Configura\c{c}\~ao}\\[40pt]
+\rule{0.7\linewidth}{2pt}\\[20pt]
+{\large Plataforma de verifica\c{c}\~ao formal (JBMC + ESBMC)}\\[6pt]
+{\large com classifica\c{c}\~ao CWE/CERT-C e reparo guiado por contraexemplo}\\[40pt]
+\begin{tabular}{rl}
+\textbf{Disciplina:} & Verifica\c{c}\~ao de Software (Mestrado)\\[4pt]
+\textbf{Orientador:} & Prof. Lucas Cordeiro (University of Manchester)\\[4pt]
+\textbf{Vers\~ao:} & 0.1.0\\[4pt]
+\textbf{Data:} & 23 de maio de 2026\\
+\end{tabular}
+\end{center}
+\vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ===================== 1 =====================
+\section{Vis\~ao geral}
+O SMART-JBMC \'e uma plataforma web (backend FastAPI + front-end SPA) que orquestra
+verificadores formais para Java, Kotlin e C, classifica viola\c{c}\~oes em CWE/CERT-C
+e (em etapa futura) repara bugs com aux\'ilio de LLM. Este guia cobre a instala\c{c}\~ao
+das ferramentas externas, do projeto e da configura\c{c}\~ao, al\'em de como levar o
+projeto para outra m\'aquina.
+
+\nota{\textbf{Resolu\c{c}\~ao de ferramentas em 3 n\'iveis.} Cada ferramenta (esbmc, jbmc,
+kotlinc, \dots) \'e localizada nesta ordem de prioridade: \textbf{(1)} caminho no
+\texttt{.env} \(\to\) \textbf{(2)} bin\'ario copiado em \texttt{tools/} \(\to\)
+\textbf{(3)} \texttt{PATH} do sistema. Isso torna o projeto port\'avel entre m\'aquinas.}
+
+% ===================== 2 =====================
+\section{Requisitos de sistema}
+Sistema operacional Linux x86\_64 (testado em Ubuntu 24.04). Python 3.10 ou superior.
+
+\begin{center}
+\footnotesize
+\begin{longtable}{|L{2.6cm}|L{5.4cm}|L{3cm}|L{2.2cm}|}
+\hline
+\rowcolor{azulesc} \hc{Ferramenta} & \hc{Para qu\^e} & \hc{Vers\~ao testada} & \hc{Obrigat\'oria?} \\ \hline
+\endhead
+\texttt{python3} & Runtime do backend & 3.12 & Sim \\ \hline
+\texttt{esbmc} & Verifica\c{c}\~ao de C & 8.2.0 & Sim (alvos C) \\ \hline
+\texttt{jbmc} & Verifica\c{c}\~ao de Java/Kotlin (suite CBMC) & 6.9.0 & Sim (alvos JVM) \\ \hline
+\texttt{javac} & Compilar Java para bytecode & JDK 21 & Sim (alvos Java) \\ \hline
+\texttt{java} & Runtime JVM / rodar testes & JDK 21 & Sim (alvos JVM) \\ \hline
+\texttt{kotlinc} & Compilar Kotlin para bytecode & 2.3.21 & S\'o p/ Kotlin \\ \hline
+\texttt{gcc} & Compilar testes C & qualquer recente & S\'o p/ testes C \\ \hline
+\end{longtable}
+\end{center}
+
+% ===================== 3 =====================
+\section{Instalando as ferramentas externas}
+
+\subsection{ESBMC (verifica\c{c}\~ao de C)}
+Baixe o bin\'ario oficial em \url{https://github.com/esbmc/esbmc/releases} (release
+Linux). Descompacte e anote o caminho do execut\'avel, por exemplo
+\texttt{/home/usuario/esbmc/bin/esbmc}. Verifique:
+\begin{lstlisting}[language=bash]
+/home/usuario/esbmc/bin/esbmc --version
+# ESBMC version 8.2.0 64-bit x86_64 linux
+\end{lstlisting}
+
+\subsection{JBMC (verifica\c{c}\~ao de Java/Kotlin)}
+O JBMC faz parte da suite \textbf{CBMC} (Diffblue), distribu\'ida \emph{separadamente}
+do ESBMC. Baixe a release em \url{https://github.com/diffblue/cbmc/releases}:
+\begin{lstlisting}[language=bash]
+# Ubuntu/Debian: instale o pacote .deb da release (inclui jbmc e cbmc)
+sudo apt install ./ubuntu-24.04-cbmc-6.9.0-Linux.deb
+
+# Verifique
+jbmc --version       # 6.9.0 (cbmc-6.9.0)
+\end{lstlisting}
+\nota{O \texttt{jbmc} precisa de um JDK instalado (ver \texttt{javac}/\texttt{java}) para
+compilar e verificar o bytecode.}
+
+\subsection{Kotlin (kotlinc) via SDKMAN}
+O \texttt{kotlinc} \'e um script que depende do SDK Kotlin e de um JRE. A forma mais
+simples \'e via SDKMAN:
+\begin{lstlisting}[language=bash]
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install kotlin
+kotlinc -version     # kotlinc-jvm 2.3.21 (JRE 21...)
+\end{lstlisting}
+
+\subsection{JDK (javac e java)}
+\begin{lstlisting}[language=bash]
+sudo apt install openjdk-21-jdk
+javac -version && java -version
+\end{lstlisting}
+
+\subsection{GCC}
+\begin{lstlisting}[language=bash]
+sudo apt install build-essential   # fornece o gcc
+gcc --version
+\end{lstlisting}
+
+% ===================== 4 =====================
+\section{Instalando o projeto}
+\begin{lstlisting}[language=bash]
+cd ~/tools/TrbLuccas/smart-jbmc
+
+# Ambiente virtual isolado (recomendado)
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Dependencias do backend
+pip install -r requirements.txt
+\end{lstlisting}
+
+% ===================== 5 =====================
+\section{Configura\c{c}\~ao (\texttt{.env})}
+Copie o modelo e ajuste os caminhos para a sua m\'aquina:
+\begin{lstlisting}[language=bash]
+cp .env.example .env
+\end{lstlisting}
+
+Exemplo de \texttt{.env} (os caminhos s\~ao espec\'ificos de cada m\'aquina):
+\begin{lstlisting}
+ESBMC_PATH=/home/franklin/esbmc/bin/esbmc
+JBMC_PATH=/usr/bin/jbmc
+KOTLINC_PATH=/home/franklin/.sdkman/candidates/kotlin/current/bin/kotlinc
+
+# Reparo guiado por LLM (etapa futura) - preencha quando for usar
+DEEPSEEK_API_KEY=
+DEEPSEEK_MODEL=deepseek-v4-flash
+\end{lstlisting}
+
+\begin{center}
+\footnotesize
+\begin{longtable}{|L{3.4cm}|L{10.6cm}|}
+\hline
+\rowcolor{azulesc} \hc{Vari\'avel} & \hc{Descri\c{c}\~ao} \\ \hline
+\endhead
+\texttt{ESBMC\_PATH} & Caminho do execut\'avel ESBMC. Vazio \(\to\) usa \texttt{tools/esbmc} ou o \texttt{PATH}. \\ \hline
+\texttt{JBMC\_PATH} & Caminho do execut\'avel JBMC. \\ \hline
+\texttt{KOTLINC\_PATH} & Caminho do \texttt{kotlinc} (s\'o para alvos Kotlin). \\ \hline
+\texttt{JAVAC\_PATH}, \texttt{JAVA\_PATH}, \texttt{GCC\_PATH} & Opcionais; normalmente resolvidos pelo \texttt{PATH}. \\ \hline
+\texttt{DEEPSEEK\_API\_KEY} & Chave da API DeepSeek (s\'o para o reparo-LLM). Nunca versione. \\ \hline
+\texttt{DEEPSEEK\_MODEL} & \texttt{deepseek-v4-flash} (econ\^omico) ou \texttt{deepseek-v4-pro}. \\ \hline
+\end{longtable}
+\end{center}
+
+\nota{\textbf{Seguran\c{c}a:} o arquivo \texttt{.env} cont\'em caminhos locais e a chave de
+API. Ele j\'a est\'a no \texttt{.gitignore} --- \textbf{nunca} o versione nem o
+compartilhe.}
+
+% ===================== 6 =====================
+\section{Executando}
+\begin{lstlisting}[language=bash]
+cd ~/tools/TrbLuccas/smart-jbmc
+.venv/bin/uvicorn smart_jbmc.api.app:app --app-dir backend --host 127.0.0.1 --port 8000
+\end{lstlisting}
+Abra no navegador:
+\begin{itemize}
+  \item \url{http://localhost:8000} --- a SPA (painel, estado do servi\c{c}o)
+  \item \url{http://localhost:8000/api/docs} --- documenta\c{c}\~ao autom\'atica da API (Swagger)
+\end{itemize}
+
+% ===================== 7 =====================
+\section{Verificando a instala\c{c}\~ao}
+O endpoint \texttt{/api/health} reporta a disponibilidade e o caminho de cada
+ferramenta:
+\begin{lstlisting}[language=bash]
+curl -s http://localhost:8000/api/health
+\end{lstlisting}
+Cada ferramenta deve aparecer com \texttt{"available": true}. No painel web, os
+\emph{badges} ficam verdes e o caminho aparece ao passar o mouse. Para rodar os testes:
+\begin{lstlisting}[language=bash]
+.venv/bin/python -m pytest -q
+\end{lstlisting}
+
+% ===================== USO =====================
+\section{Uso da interface e par\^ametros}
+Abra \url{http://localhost:8000}. O card \textbf{Ambiente} (no topo) indica quais
+ferramentas foram encontradas. Em \textbf{Nova verifica\c{c}\~ao}:
+\begin{itemize}
+  \item \textbf{Pasta} --- digite o caminho ou clique em \textbf{Procurar} para navegar
+        pelos diret\'orios da m\'aquina (mostra subpastas e quantos arquivos-fonte h\'a).
+  \item \textbf{Verificar} --- uma barra de progresso mostra a fase (escanear $\to$
+        compilar $\to$ verificar) e os alvos conclu\'idos em tempo real.
+  \item \textbf{Resultados} --- resumo (BUG/SAFE/TIMEOUT/ERROR + CASTLE Score),
+        distribui\c{c}\~ao CWE e tabela de alvos; clique num alvo para ver o contraexemplo.
+  \item \textbf{Hist\'orico} --- lista as runs; o item ativo fica destacado e o cabe\c{c}alho
+        identifica qual run est\'a aberta.
+\end{itemize}
+
+\begin{center}
+\footnotesize
+\begin{longtable}{|L{2.3cm}|L{1.3cm}|L{1.9cm}|L{8cm}|}
+\hline
+\rowcolor{azulesc} \hc{Par\^ametro} & \hc{M\'in} & \hc{M\'ax} & \hc{O que faz / implica\c{c}\~ao} \\ \hline
+\endhead
+\texttt{unwind} & 1 & $\sim$100 & Bound do BMC (desenrolamento de loops). $\uparrow$ mais confian\c{c}a, por\'em mais lento e mais mem\'oria; $\downarrow$ r\'apido, mas pode perder bugs profundos (BMC \'e incompleto al\'em do bound). T\'ipico: 5--20. \\ \hline
+\texttt{timeout} & 1\,s & 3600\,s & Tempo m\'aximo do solver por alvo. $\uparrow$ menos \texttt{TIMEOUT} em alvos dif\'iceis (run mais lenta); $\downarrow$ corta alvos pesados cedo. T\'ipico: 30--120. \\ \hline
+\texttt{jobs} & 1 & n\'ucleos & Verifica\c{c}\~oes em paralelo. $\uparrow$ mais r\'apido em multi-core (usa mais CPU/RAM); \texttt{1} = sequencial (bom para depurar). \\ \hline
+\texttt{solver} & --- & --- & Backend SMT do ESBMC: \texttt{boolector} (r\'apido, padr\~ao), \texttt{z3} (aritm\'etica), \texttt{mathsat} (interpola\c{c}\~ao). O JBMC usa MiniSat (independe desta op\c{c}\~ao). \\ \hline
+\end{longtable}
+\end{center}
+
+% ===================== REPARO =====================
+\section{Reparo guiado por contraexemplo (DeepSeek V4)}
+Ap\'os uma verifica\c{c}\~ao com bugs, a interface mostra \textbf{Reparar bugs}. O ciclo:
+a LLM (DeepSeek V4) prop\~oe um patch a partir do contraexemplo; o verificador
+(JBMC/ESBMC) re-verifica; se o bug persiste, o \textbf{novo contraexemplo} realimenta
+a LLM, at\'e o BMC provar \texttt{FIX\_OK} ou esgotar as itera\c{c}\~oes. O verificador
+\'e o or\'aculo: s\'o conta como reparado o que ele prova seguro.
+
+\begin{itemize}
+  \item \textbf{Chave:} preencha \texttt{DEEPSEEK\_API\_KEY} no \texttt{.env} (e mantenha
+        saldo na conta). \texttt{DEEPSEEK\_MODEL}: \texttt{deepseek-v4-flash} (econ\^omico,
+        padr\~ao) ou \texttt{deepseek-v4-pro}.
+  \item \textbf{Modo \texttt{dry-run}} (interruptor na tela): executa todo o loop
+        \textbf{sem chamar a API} (n\~ao consome saldo) --- \'util para validar a fia\c{c}\~ao.
+  \item \textbf{M\'etricas:} taxa de reparo verificado e itera\c{c}\~oes m\'edias por
+        categoria, para comparar com o baseline heur\'istico.
+  \item \textbf{REST:} \texttt{POST /api/repair} e \texttt{GET /api/repair/\{run\_id\}}.
+\end{itemize}
+
+% ===================== 8 =====================
+\section{Portabilidade --- levar para outro computador}
+O projeto foi desenhado para ser port\'avel. Recomenda\c{c}\~ao:
+\begin{enumerate}
+  \item Copie a pasta \texttt{smart-jbmc/} \textbf{sem} \texttt{.venv/}, \texttt{tools/} e \texttt{.env} (s\~ao espec\'ificos da m\'aquina).
+  \item Na nova m\'aquina, instale as ferramentas externas (Se\c{c}\~ao 3) e o JDK.
+  \item Recrie o \texttt{.env} com os caminhos locais (use o \texttt{.env.example}).
+  \item \texttt{pip install -r requirements.txt} e execute (Se\c{c}\~ao 6).
+\end{enumerate}
+
+\nota{Se a outra m\'aquina for \textbf{Linux x86\_64 igual}, voc\^e pode copiar os
+bin\'arios \texttt{esbmc} e \texttt{jbmc} para a pasta \texttt{tools/} do projeto --- eles
+ser\~ao detectados automaticamente, sem precisar do \texttt{.env}. O \texttt{kotlinc},
+por\'em, sempre exige o SDK Kotlin + JRE instalados na m\'aquina destino.}
+
+% ===================== 9 =====================
+\section{Solu\c{c}\~ao de problemas}
+\begin{center}
+\footnotesize
+\begin{longtable}{|L{5cm}|L{9cm}|}
+\hline
+\rowcolor{azulesc} \hc{Sintoma} & \hc{Solu\c{c}\~ao} \\ \hline
+\endhead
+\texttt{jbmc} aparece como indispon\'ivel & Instale a suite CBMC (Se\c{c}\~ao 3.2) e/ou defina \texttt{JBMC\_PATH} no \texttt{.env}. \\ \hline
+\texttt{kotlinc} indispon\'ivel & Instale via SDKMAN; aponte \texttt{KOTLINC\_PATH} para \texttt{.../kotlin/current/bin/kotlinc}. \\ \hline
+``Address already in use'' na porta 8000 & Outro servidor j\'a est\'a rodando: \texttt{pkill -f "uvicorn smart\_jbmc"} ou use \texttt{--port 8001}. \\ \hline
+SPA carrega mas mostra ``offline'' & O backend n\~ao subiu; confira o terminal do \texttt{uvicorn}. \\ \hline
+Pylance n\~ao acha \texttt{fastapi} & Selecione o interpretador do \texttt{.venv} no editor. \\ \hline
+\end{longtable}
+\end{center}
+
+\end{document}

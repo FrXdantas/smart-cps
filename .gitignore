@@ -1,0 +1,42 @@
+# Segredos — NUNCA versionar
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Saídas de execução
+data/
+# data/ inteiro fica fora: auth.db tem os hashes de senha; uploads e runs são
+# de usuários. data/stubs é regenerado do código (core/stubs.py) no 1º uso.
+*.log
+
+# Build verify (bytecode JVM gerado)
+build_verify/
+
+# Front-end (caso vire build com node)
+node_modules/
+
+# Binários vendorizados (pesados/específicos de plataforma) — manter só a pasta
+tools/*
+!tools/.gitkeep
+!tools/smart-jbmc-admin.py
+
+# Editores
+.vscode/
+.idea/
+
+# Docker: binário ESBMC copiado para a construção, pacote offline e configuração local
+docker/vendor/*
+!docker/vendor/.gitkeep
+smartcps.env
+smartcps-imagem*.tar*
+smartcps-dados-*.tar.gz
+hs_err_pid*.log
+.env.bak-*

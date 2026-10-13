@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMART ESBMC / JBMC rv. 1.11-cps — Verificação Formal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/styles.css?v=13" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-dark bg-primary shadow-sm">
+    <div class="container">
+      <span class="navbar-brand fw-bold">SMART ESBMC / JBMC
+        <span class="badge text-bg-light text-dark align-middle ms-1"
+              style="font-size:.6em">rv. 1.11-cps</span></span>
+      <div class="d-flex align-items-center gap-3">
+        <span class="navbar-text text-white-50 small d-none d-md-inline">
+          Verificação formal · CWE/CERT-C · Reparo guiado por contraexemplo
+        </span>
+        <button id="btn-settings" class="btn btn-sm btn-outline-light"
+                title="Configurar LLM de reparo (provedor, chave, modelo)">
+          Configurar LLM
+        </button>
+        <a id="link-admin" class="btn btn-sm btn-outline-light d-none" href="admin.html"
+           title="Administração (admin)">Admin</a>
+        <span id="user-label" class="navbar-text text-white small ms-1"></span>
+        <button id="btn-logout" class="btn btn-sm btn-outline-light" title="Sair">
+          Sair
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+
+    <!-- ===== Ambiente (no topo) — tudo numa linha, separado por | ===== -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
+        <span class="fw-semibold small">Ambiente</span>
+        <span id="api-status" class="badge text-bg-secondary">…</span>
+        <span id="tools" class="small text-muted"></span>
+        <button id="btn-refresh-health" class="btn btn-sm btn-outline-primary ms-auto">
+          Atualizar
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== Lançar verificação ===== -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        Nova verificação
+      </div>
+      <div class="card-body">
+        <form id="run-form" class="row g-3">
+          <!-- 1) Pasta do projeto -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Pasta do projeto/benchmark</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="f-folder" required
+                     placeholder="/caminho/para/seu/projeto (ou use 'Enviar pasta')">
+              <button class="btn btn-outline-primary" type="button" id="btn-upload"
+                      title="Enviar uma pasta do SEU computador para o servidor">
+                Enviar pasta
+              </button>
+              <button class="btn btn-outline-primary" type="button" id="btn-browse"
+                      title="Navegar pastas DESTE servidor (admin local)">
+                Procurar no servidor
+              </button>
+            </div>
+            <!-- input invisível usado pelo botão "Enviar pasta" -->
+            <input type="file" id="folder-picker" webkitdirectory directory multiple class="d-none">
+
+            <!-- progresso do upload -->
+            <div id="upload-progress" class="mt-2 d-none">
+              <div class="d-flex justify-content-between small mb-1">
+                <span>Enviando pasta…</span>
+                <span><span id="upload-pct">0</span>% · <span id="upload-meta" class="text-muted"></span></span>
+              </div>
+              <div class="progress" style="height:8px">
+                <div id="upload-bar" class="progress-bar" role="progressbar" style="width:0%"></div>
+              </div>
+            </div>
+
+            <!-- Navegador de diretórios -->
+            <div class="card mt-2 d-none" id="browser">
+              <div class="card-body p-2">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <button class="btn btn-sm btn-light border" type="button" id="browser-up" title="Subir um nível">
+                    Subir
+                  </button>
+                  <code class="flex-grow-1 text-truncate small" id="browser-path"></code>
+                  <span class="badge text-bg-light border" id="browser-src" title="arquivos-fonte nesta pasta E subpastas (recursivo, como a verificação)"></span>
+                  <button class="btn btn-sm btn-primary" type="button" id="browser-pick">
+                    Usar esta pasta
+                  </button>
+                </div>
+                <div class="list-group list-group-flush browser-list" id="browser-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2) Estratégia ao lado de checar overflow unsigned -->
+          <div class="col-12 col-md-6">
+            <label class="form-label small">estratégia <span class="text-muted" style="cursor:help"
+              title="Como o verificador trata os loops — vale para C (ESBMC) E para Java/Kotlin (JBMC). bounded: corta no unwind, rápido, mas SAFE só vale até o bound. sound: loop não coberto vira UNKNOWN (não mente SAFE). incremental: sobe o unwind sozinho até achar bug — não precisa adivinhar o N. k-induction: tenta provar o loop por indução, sem desenrolar tudo. incremental/k-induction ignoram o unwind fixo, são limitados pelo timeout e existem SÓ no ESBMC: em Java/Kotlin caem em bounded.">(?)</span></label>
+            <select class="form-select" id="f-strategy">
+              <option value="bounded" selected>bounded — rápido (SAFE até o bound) · C e JVM</option>
+              <option value="sound">sound — UNKNOWN se o bound não cobrir o loop · C e JVM</option>
+              <option value="incremental">incremental-bmc — auto-unwind (acha bug sem adivinhar N) · só C</option>
+              <option value="kinduction">k-induction — prova o loop (pode dar UNKNOWN) · só C</option>
+            </select>
+            <small class="text-muted">
+              incremental/k-induction ignoram o unwind fixo e valem só para C —
+              em Java/Kotlin o JBMC usa <strong>bounded</strong>
+            </small>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label small">verificação de overflow <span class="text-muted" style="cursor:help"
+              title="Adiciona --unsigned-overflow-check. O overflow COM SINAL já é checado sempre (é UB em C). O overflow UNSIGNED é wraparound DEFINIDO pela norma C, então o ESBMC só o reporta com este opt-in. Ligue para caçar overflow de tamanho/alocação (CWE-190, ex.: CVE-2025-53630). Desligado por padrão: código que usa wraparound de propósito (hash, ring buffer, aritmética modular) viraria falso-positivo.">(?)</span></label>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" id="f-unsigned-overflow">
+              <label class="form-check-label small" for="f-unsigned-overflow">
+                checar overflow <strong>unsigned</strong> (size_t/unsigned)
+              </label>
+            </div>
+          </div>
+
+          <!-- 3) Parâmetros de ajuste -->
+          <div class="col-6 col-md-3">
+            <label class="form-label small">unwind <span class="text-muted" style="cursor:help"
+              title="Limite de desenrolamento de loops (bound do BMC). ↑ explora loops mais fundo (mais confiança, mais lento/memória); ↓ rápido, mas pode não alcançar bugs profundos.">(?)</span></label>
+            <input type="number" class="form-control" id="f-unwind" value="5" min="1" max="100">
+            <small class="text-muted">mín 1 · típico 5–20</small>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small">timeout (s) <span class="text-muted" style="cursor:help"
+              title="Tempo máximo do solver por alvo. ↑ menos TIMEOUTs em alvos difíceis (run mais lenta); ↓ corta alvos pesados cedo.">(?)</span></label>
+            <input type="number" class="form-control" id="f-timeout" value="60" min="1" max="3600">
+            <small class="text-muted">mín 1 · típico 30–120</small>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small">jobs <span class="text-muted" style="cursor:help"
+              title="Verificações em paralelo. ↑ mais rápido em multi-core (usa mais CPU/RAM); =1 sequencial (bom p/ depurar).">(?)</span></label>
+            <input type="number" class="form-control" id="f-jobs" value="4" min="1">
+            <small class="text-muted" id="jobs-hint">mín 1</small>
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label small">solver <span class="text-muted" style="cursor:help"
+              title="Backend SMT do ESBMC. boolector: rápido (padrão); z3: forte em aritmética; mathsat: interpolação. JBMC usa MiniSat (independe). Só aparecem os solvers compilados neste build.">(?)</span></label>
+            <select class="form-select" id="f-solver">
+              <option value="boolector" selected>boolector (rápido, padrão)</option>
+              <option value="z3">z3 (aritmética)</option>
+              <option value="mathsat">mathsat (interpolação)</option>
+            </select>
+            <small class="text-muted" id="solver-hint"></small>
+          </div>
+
+          <!-- 4) Opções avançadas -->
+          <div class="col-12">
+            <a class="small text-decoration-none" data-bs-toggle="collapse" href="#adv-project" role="button"
+               aria-expanded="false" aria-controls="adv-project">
+              Opções de projeto (avançado)
+            </a>
+            <div class="collapse mt-2" id="adv-project">
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">include paths (-I) <span class="text-muted" style="cursor:help"
+                    title="Diretórios de headers (-I) para verificar uma unidade de um projeto real cujos #include não estão na pasta do alvo (ex.: ggml/include do llama.cpp). Um por linha. Sem isto o frontend dá PARSING ERROR antes de verificar. Funções externas sem corpo o ESBMC abstrai (havoc) — não precisa buildar o projeto.">(?)</span></label>
+                  <textarea class="form-control form-control-sm" id="f-include-dirs" rows="2"
+                            placeholder="/proj/ggml/include&#10;/proj/include"></textarea>
+                  <small class="text-muted">um diretório por linha</small>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">unidade multi-arquivo (link) <span class="text-muted" style="cursor:help"
+                    title="Lista de .c (main + deps) a verificar LINKADOS num único alvo, em vez de um-por-arquivo (que havocaria as deps). Ex.: repl.c e tinyexpr.c. Caminhos relativos resolvem contra a pasta do projeto. Um por linha. Necessário p/ achar bug em projeto real multi-arquivo.">(?)</span></label>
+                  <textarea class="form-control form-control-sm" id="f-link-unit" rows="2"
+                            placeholder="repl.c&#10;tinyexpr.c"></textarea>
+                  <small class="text-muted">um arquivo por linha (relativo à pasta)</small>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">função-entrada (--function) <span class="text-muted" style="cursor:help"
+                    title="Verifica ESSA função como ponto de entrada: o ESBMC HAVOCA os argumentos (nondet) de graça, dispensando escrever um main(). Permite checar uma rotina isolada de um projeto sem corpo de chamador. Vazio = main() padrão.">(?)</span></label>
+                  <input type="text" class="form-control form-control-sm" id="f-function"
+                         placeholder="ex.: aligned_offset (vazio = main)">
+                  <small class="text-muted">vazio = usa o main()</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5) Ação -->
+          <div class="col-12">
+            <button type="submit" id="btn-run" class="btn btn-primary">
+              Verificar
+            </button>
+            <span id="form-error" class="text-danger small ms-2"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== Progresso ===== -->
+    <div class="card shadow-sm mb-4 d-none" id="progress-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-semibold" id="progress-phase">Iniciando…</span>
+          <span class="d-flex align-items-center gap-2">
+            <span class="text-muted small" id="progress-meta"></span>
+            <button class="btn btn-sm btn-outline-danger" id="btn-cancel-run">
+              Parar
+            </button>
+          </span>
+        </div>
+        <div class="progress" role="progressbar" style="height: 1.4rem;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+               id="progress-bar" style="width: 0%;">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Resultados ===== -->
+    <section id="results" class="d-none">
+      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+        <h2 class="h5 text-primary mb-0">Resultados</h2>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge text-bg-light border" id="results-header"></span>
+          <button class="btn btn-sm btn-outline-primary" id="btn-export-sarif"
+                  title="Exportar achados em SARIF 2.1.0 (VS Code / GitHub / CI)">
+            SARIF
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-2 mb-3" id="summary-cards"></div>
+      <div id="results-warnings" class="alert alert-warning py-2 px-3 small d-none"></div>
+
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">
+              Distribuição CWE
+            </div>
+            <div class="card-body" id="cwe-dist"></div>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">
+              Alvos
+              <span class="text-muted small fw-normal">(clique para ver o contraexemplo)</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                  <thead>
+                    <tr><th>Alvo</th><th>Tipo</th><th>Status</th><th>Bug</th><th>CWE</th><th>CERT</th></tr>
+                  </thead>
+                  <tbody id="targets-body"></tbody>
+                </table>
+              </div>
+              <div class="card-footer bg-white" id="targets-pager"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mt-3 d-none" id="detail-card">
+        <div class="card-header bg-white fw-semibold">
+          Detalhe — <span id="detail-title"></span>
+        </div>
+        <div class="card-body">
+          <div id="detail-meta" class="mb-2 small"></div>
+          <pre class="explanation" id="detail-explanation"></pre>
+        </div>
+      </div>
+
+      <!-- Reparo guiado por LLM -->
+      <div class="card shadow-sm mt-3 d-none" id="repair-card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span class="fw-semibold">Reparo guiado por contraexemplo
+            <span id="repair-model-badge" class="badge text-bg-light border fw-normal ms-1">dry-run</span></span>
+          <div class="d-flex align-items-center gap-3">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="repair-dryrun">
+              <label class="form-check-label small" for="repair-dryrun" title="Demonstra o loop sem chamar a API (não consome saldo).">dry-run</label>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="repair-incremental" checked>
+              <label class="form-check-label small" for="repair-incremental" title="Pula os alvos já reparados (verificados FIX_OK) de um reparo anterior — re-roda só os que faltam.">só os que faltam</label>
+            </div>
+            <button class="btn btn-sm btn-outline-primary" id="btn-settings-repair"
+                    title="Provedor, chave e modelo do LLM de reparo">
+              Configurar LLM
+            </button>
+            <button class="btn btn-sm btn-primary" id="btn-repair">
+              Reparar bugs
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="repair-progress" class="d-none mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="small" id="repair-phase"></span>
+              <span class="d-flex align-items-center gap-2">
+                <span class="small text-muted" id="repair-meta"></span>
+                <button class="btn btn-sm btn-outline-danger" id="btn-cancel-repair">
+                  Parar
+                </button>
+              </span>
+            </div>
+            <div class="progress" style="height:1.2rem;">
+              <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                   id="repair-bar" style="width:0%;">0%</div>
+            </div>
+          </div>
+          <div id="repair-results" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <span class="text-muted small">Clique num alvo para ver a trilha e o código corrigido.</span>
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-success" id="btn-export-repair">
+                  Exportar relatório (.md)
+                </button>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-success" id="btn-dl-fixed"
+                          title="Baixar a pasta desta run em .zip, com os arquivos reparados (&lt;nome&gt;_FIXED) ao lado dos originais">
+                    Baixar pasta
+                  </button>
+                  <button class="btn btn-outline-success dropdown-toggle dropdown-toggle-split"
+                          type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="visually-hidden">opções de download</span>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" type="button" id="btn-dl-original">
+                      Só os originais (sem fix)
+                    </button></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="row g-2 mb-3" id="repair-summary"></div>
+            <div class="table-responsive">
+              <table class="table table-sm mb-0 align-middle">
+                <thead><tr><th>Alvo</th><th>Bug</th><th>Resultado</th><th>Iterações</th></tr></thead>
+                <tbody id="repair-body"></tbody>
+              </table>
+            </div>
+            <div id="repair-pager" class="mt-2"></div>
+            <!-- Detalhe do alvo de reparo -->
+            <div class="card mt-3 d-none" id="repair-detail">
+              <div class="card-header bg-white fw-semibold">
+                Detalhe — <span id="repair-detail-title"></span>
+              </div>
+              <div class="card-body">
+                <div id="repair-detail-trail" class="mb-2"></div>
+                <div id="repair-detail-path" class="small text-muted mb-3"></div>
+                <div class="row g-3" id="repair-detail-code"></div>
+              </div>
+            </div>
+          </div>
+          <p class="text-muted small mb-0" id="repair-hint">
+            Repara os alvos com BUG desta run (LLM propõe → o verificador valida → realimenta o
+            contraexemplo até provar a correção). Em <strong>dry-run</strong> demonstra o loop sem usar a API.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Histórico ===== -->
+    <div class="card shadow-sm my-4">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Histórico
+          <span class="text-muted small fw-normal">(clique para abrir o relatório · 🗑 apaga a run e a pasta dela no servidor)</span></span>
+        <div class="d-flex gap-2">
+          <button id="btn-refresh-hist" class="btn btn-sm btn-outline-primary" title="Atualizar">
+            Atualizar
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush" id="history"></ul>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== Configuração do LLM (pop-up) ===== -->
+  <div id="settings-overlay" class="settings-overlay d-none">
+    <div class="settings-dialog card shadow-lg">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Configurar LLM de reparo</span>
+        <button type="button" class="btn-close" id="settings-close" aria-label="Fechar"></button>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Provedor</label>
+          <select class="form-select form-select-sm" id="cfg-provider">
+            <option value="deepseek">DeepSeek</option>
+            <option value="groq">Groq</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="local">Local (Ollama, GPU desta máquina)</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Base URL</label>
+          <input type="text" class="form-control form-control-sm" id="cfg-baseurl" placeholder="https://...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">API key</label>
+          <div class="input-group input-group-sm">
+            <input type="password" class="form-control" id="cfg-key"
+                   placeholder="cole sua chave aqui" autocomplete="off">
+            <button class="btn btn-outline-secondary" type="button" id="cfg-key-toggle" title="Mostrar/ocultar">
+              Mostrar
+            </button>
+          </div>
+          <small class="text-muted">Fica só no seu navegador (localStorage). Nunca é gravada em disco no servidor.</small>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-semibold">Modelo</label>
+          <!-- input livre para provedores remotos (lista grande, nomes mudam) -->
+          <input type="text" class="form-control form-control-sm" id="cfg-model"
+                 list="cfg-model-list" placeholder="ex.: deepseek-v4-flash" autocomplete="off">
+          <datalist id="cfg-model-list"></datalist>
+          <!-- select dropdown explícito para o Ollama do servidor — populado em runtime -->
+          <select class="form-select form-select-sm d-none" id="cfg-model-select"></select>
+          <small class="text-muted" id="cfg-model-hint"></small>
+        </div>
+        <div id="cfg-saved" class="text-success small d-none">Configuração salva.</div>
+      </div>
+      <div class="card-footer bg-white d-flex justify-content-between">
+        <button class="btn btn-sm btn-outline-danger" id="cfg-clear">Limpar</button>
+        <button class="btn btn-sm btn-primary" id="cfg-save">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center text-muted small py-3 border-top">
+    SMART ESBMC/JBMC · 2026
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js?v=12"></script>
+  <script src="js/auth.js?v=3"></script>
+  <script src="js/app.js?v=12"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Alternativa ao ./subir.sh para quem prefere compose:  docker compose up -d
+# (a imagem precisa existir: ./smartcps.sh construir, ou docker load do pacote)
+services:
+  smartcps:
+    image: smartcps:1.11-cps
+    build: .
+    container_name: smartcps
+    restart: unless-stopped
+    ports:
+      - "${PORTA:-8100}:8000"
+    environment:
+      HOST_PORT: "${PORTA:-8100}"
+    env_file:
+      - path: smartcps.env
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - smartcps-dados:/app/data
+
+volumes:
+  smartcps-dados:
+    name: smartcps-dados

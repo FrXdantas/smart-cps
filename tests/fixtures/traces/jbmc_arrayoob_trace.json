@@ -1,0 +1,1582 @@
+[
+  {
+    "program": "JBMC 6.9.0 (cbmc-6.9.0)"
+  },
+  {
+    "messageText": "JBMC version 6.9.0 (cbmc-6.9.0) 64-bit x86_64 linux",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Parsing ...",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Trying to load Java main class: ArrayOob",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Found Java main class: ArrayOob",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Converting",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "stub class symbol java::java.lang.Object already exists",
+    "messageType": "WARNING"
+  },
+  {
+    "messageText": "Java: added 0 String or Class constant symbols",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Generating GOTO Program",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Running GOTO functions transformation passes",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Running with 16 object bits, 48 offset bits (default)",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Starting Bounded Model Checking",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Unwinding loop __CPROVER__start.0 iteration 1  thread 0",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Unwinding loop __CPROVER__start.0 iteration 2  thread 0",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Unwinding loop __CPROVER__start.0 iteration 3  thread 0",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Unwinding loop __CPROVER__start.0 iteration 4  thread 0",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Not unwinding loop __CPROVER__start.0 iteration 5  thread 0",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Runtime Symex: 0.00547737s",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "size of program expression: 355 steps",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "simple slicing removed 3 assignments",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Generated 5 VCC(s), 2 remaining after simplification",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Runtime Postprocess Equation: 1.741e-05s",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Passing problem to string refinement loop with MiniSAT 2.2.1 without simplifier",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "converting SSA",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Runtime Convert SSA: 0.00059741s",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Running string refinement loop with MiniSAT 2.2.1 without simplifier",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "4815 variables, 4720 clauses",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "SAT checker: instance is SATISFIABLE",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "BV-Refinement: got SAT, and it simulates => SAT",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Total iterations: 1",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Runtime Solver: 0.00149021s",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Runtime decision procedure: 0.00211804s",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "messageText": "Building error trace",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "description": "Array index should be < length",
+    "property": "java::ArrayOob.main:([Ljava/lang/String;)V.array-index-out-of-bounds-high.1",
+    "status": "failed",
+    "trace": [
+      {
+        "function": {
+          "displayName": "__CPROVER_initialize",
+          "identifier": "__CPROVER_initialize",
+          "sourceLocation": {}
+        },
+        "hidden": false,
+        "internal": true,
+        "stepType": "function-call",
+        "thread": 0
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "__CPROVER_rounding_mode",
+        "mode": "C",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "signed int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "@inflight_exception",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "void *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "out",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.io.PrintStream *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "java$$java_lang_System$$clinit_already_run",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "0",
+          "data": false,
+          "name": "boolean"
+        }
+      },
+      {
+        "function": {
+          "displayName": "__CPROVER_initialize",
+          "identifier": "__CPROVER_initialize",
+          "sourceLocation": {}
+        },
+        "hidden": false,
+        "internal": false,
+        "stepType": "function-return",
+        "thread": 0
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "uncaught_exception'",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "void *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "nondet_array_length",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "array_data_init",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String **"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "array_init_iter",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "new_array_item",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "malloc_site",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "tmp_object_factory",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "args",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java::array[reference] *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "nondet_array_length",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "nondet_array_length",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "members": [
+            {
+              "name": "@java.lang.Object",
+              "value": {
+                "members": [
+                  {
+                    "name": "@class_identifier",
+                    "value": {
+                      "data": "java::array[reference]",
+                      "name": "string"
+                    }
+                  }
+                ],
+                "name": "struct"
+              }
+            },
+            {
+              "name": "length",
+              "value": {
+                "binary": "00000000000000000000000000000000",
+                "data": "0",
+                "name": "integer",
+                "type": "int",
+                "width": 32
+              }
+            },
+            {
+              "name": "data",
+              "value": {
+                "data": "null",
+                "name": "pointer",
+                "type": "void **"
+              }
+            },
+            {
+              "name": "@element_class_identifier",
+              "value": {
+                "data": "java::array[reference]",
+                "name": "string"
+              }
+            },
+            {
+              "name": "@array_dimensions",
+              "value": {
+                "binary": "00000000000000000000000000000000",
+                "data": "0",
+                "name": "integer",
+                "type": "int",
+                "width": 32
+              }
+            }
+          ],
+          "name": "struct"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@java.lang.Object",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "members": [
+            {
+              "name": "@class_identifier",
+              "value": {
+                "data": "java::array[reference]",
+                "name": "string"
+              }
+            }
+          ],
+          "name": "struct"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@java.lang.Object.@class_identifier",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "java::array[reference]",
+          "name": "string"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.length",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.data",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "void **"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@element_class_identifier",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "java::array[reference]",
+          "name": "string"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@array_dimensions",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "args",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_object",
+          "name": "pointer",
+          "type": "struct java::array[reference] *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@java.lang.Object.@class_identifier",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "java::array[reference]",
+          "name": "string"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.length",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.data",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "void **"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@element_class_identifier",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "",
+          "name": "string"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@array_dimensions",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@array_dimensions",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000001",
+          "data": "1",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.@element_class_identifier",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "java::java.lang.String",
+          "name": "string"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.length",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": true,
+        "lhs": "tmp_new_data_array",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String **"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "tmp_new_data_array",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_array",
+          "name": "pointer",
+          "type": "struct java.lang.String **"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object.data",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_array",
+          "name": "pointer",
+          "type": "void **"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_array",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "elements": [
+            {
+              "index": 0,
+              "value": {
+                "data": "null",
+                "name": "pointer",
+                "type": "struct java.lang.String *"
+              }
+            },
+            {
+              "index": 1,
+              "value": {
+                "data": "null",
+                "name": "pointer",
+                "type": "struct java.lang.String *"
+              }
+            },
+            {
+              "index": 2,
+              "value": {
+                "data": "null",
+                "name": "pointer",
+                "type": "struct java.lang.String *"
+              }
+            },
+            {
+              "index": 3,
+              "value": {
+                "data": "null",
+                "name": "pointer",
+                "type": "struct java.lang.String *"
+              }
+            },
+            {
+              "index": 4,
+              "value": {
+                "data": "null",
+                "name": "pointer",
+                "type": "struct java.lang.String *"
+              }
+            }
+          ],
+          "name": "array"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_array[0L]",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_array[1L]",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_array[2L]",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_array[3L]",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_array[4L]",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java.lang.String *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "array_data_init",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_array",
+          "name": "pointer",
+          "type": "struct java.lang.String **"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "array_init_iter",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "hidden": false,
+        "inputID": "args",
+        "internal": true,
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "input",
+        "thread": 0,
+        "values": [
+          {
+            "data": "dynamic_object",
+            "name": "pointer",
+            "type": "struct java::array[reference] *"
+          }
+        ]
+      },
+      {
+        "function": {
+          "displayName": "ArrayOob.main(java.lang.String[])",
+          "identifier": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "sourceLocation": {
+            "file": "ArrayOob.java",
+            "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+            "line": "4"
+          }
+        },
+        "hidden": false,
+        "internal": false,
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "function-call",
+        "thread": 0
+      },
+      {
+        "assignmentType": "actual-parameter",
+        "hidden": false,
+        "internal": true,
+        "lhs": "args",
+        "mode": "java",
+        "sourceLocation": {
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_object",
+          "name": "pointer",
+          "type": "struct java::array[reference] *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": false,
+        "lhs": "newarray_tmp0",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java::array[int] *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "x",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "i",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "arr",
+        "mode": "java",
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "struct java::array[int] *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object$10",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "members": [
+            {
+              "name": "@java.lang.Object",
+              "value": {
+                "members": [
+                  {
+                    "name": "@class_identifier",
+                    "value": {
+                      "data": "java::array[reference]",
+                      "name": "string"
+                    }
+                  }
+                ],
+                "name": "struct"
+              }
+            },
+            {
+              "name": "length",
+              "value": {
+                "binary": "00000000000000000000000000000000",
+                "data": "0",
+                "name": "integer",
+                "type": "int",
+                "width": 32
+              }
+            },
+            {
+              "name": "data",
+              "value": {
+                "data": "null",
+                "name": "pointer",
+                "type": "int *"
+              }
+            }
+          ],
+          "name": "struct"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_object$10.@java.lang.Object",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "members": [
+            {
+              "name": "@class_identifier",
+              "value": {
+                "data": "java::array[reference]",
+                "name": "string"
+              }
+            }
+          ],
+          "name": "struct"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_object$10.@java.lang.Object.@class_identifier",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "java::array[reference]",
+          "name": "string"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_object$10.length",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_object$10.data",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "int *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "newarray_tmp0",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_object$10",
+          "name": "pointer",
+          "type": "struct java::array[int] *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_object$10.@java.lang.Object.@class_identifier",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "java::array[int]",
+          "name": "string"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_object$10.length",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_object$10.data",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "int *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_object$10.length",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000010",
+          "data": "2",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": true,
+        "internal": false,
+        "lhs": "tmp_new_data_array",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "null",
+          "name": "pointer",
+          "type": "int *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "tmp_new_data_array",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_array$0",
+          "name": "pointer",
+          "type": "int *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_object$10.data",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_array$0",
+          "name": "pointer",
+          "type": "int *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "dynamic_array$0",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "elements": [
+            {
+              "index": 0,
+              "value": {
+                "binary": "00000000000000000000000000000000",
+                "data": "0",
+                "name": "integer",
+                "type": "int",
+                "width": 32
+              }
+            },
+            {
+              "index": 1,
+              "value": {
+                "binary": "00000000000000000000000000000000",
+                "data": "0",
+                "name": "integer",
+                "type": "int",
+                "width": 32
+              }
+            }
+          ],
+          "name": "array"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_array$0[0L]",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "dynamic_array$0[1L]",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "1",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000000",
+          "data": "0",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": true,
+        "lhs": "arr",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "2",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "4"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "data": "dynamic_object$10",
+          "name": "pointer",
+          "type": "struct java::array[int] *"
+        }
+      },
+      {
+        "assignmentType": "variable",
+        "hidden": false,
+        "internal": false,
+        "lhs": "i",
+        "mode": "java",
+        "sourceLocation": {
+          "bytecodeIndex": "4",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "5"
+        },
+        "stepType": "assignment",
+        "thread": 0,
+        "value": {
+          "binary": "00000000000000000000000000000101",
+          "data": "5",
+          "name": "integer",
+          "type": "int",
+          "width": 32
+        }
+      },
+      {
+        "hidden": false,
+        "internal": false,
+        "property": "java::ArrayOob.main:([Ljava/lang/String;)V.array-index-out-of-bounds-high.1",
+        "reason": "Array index should be < length",
+        "sourceLocation": {
+          "bytecodeIndex": "8",
+          "comment": "Array index should be < length",
+          "file": "ArrayOob.java",
+          "function": "java::ArrayOob.main:([Ljava/lang/String;)V",
+          "line": "6",
+          "propertyClass": "array-index-out-of-bounds-high",
+          "propertyId": "java::ArrayOob.main:([Ljava/lang/String;)V.array-index-out-of-bounds-high.1"
+        },
+        "stepType": "failure",
+        "thread": 0
+      }
+    ]
+  },
+  {
+    "messageText": "VERIFICATION FAILED",
+    "messageType": "STATUS-MESSAGE"
+  },
+  {
+    "cProverStatus": "failure"
+  }
+]
