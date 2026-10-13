@@ -1,157 +1,174 @@
-# SMART-JBMC — fork `smart-cps` (rv. 1.11-cps)
+# SMART-CPS: documentação técnica
 
-> **Fork de `smart-jbmc` (rv. 1.10), criado em 09/10/2026** para a disciplina
-> PGENE601 (Verificação e Síntese de Sistemas Ciberfísicos e Embarcados). Roda ao
-> lado do original sem conflito: imagem `smartcps`, container `smartcps`, volume
-> `smartcps-dados`, porta **8100**.
->
-> Correções em relação à rv. 1.10: o oráculo do reparo agora re-verifica com a
-> MESMA configuração da run que achou o bug — `concurrency`, `strategy` (em C),
-> `include_dirs` e `function`. Antes, uma race com código idêntico saía FIX_OK.
-> Teste: `tests/test_repair_herda_config.py`. Divergências entre a especificação
-> e a ferramenta: `docs/inconsistencias_especificacao.md`.
+Revisão 1.11-cps. Este documento complementa o [README](../README.md) principal e
+descreve a arquitetura, a execução sem Docker, a configuração das ferramentas e o
+ciclo de reparo.
 
-Plataforma de verificação formal (JBMC + ESBMC) com classificação CWE/CERT-C,
-reparo guiado por contraexemplo (DeepSeek V4) e front-end web.
+Trabalho da disciplina PGENE601 / PPGINF554 (UFAM, 2026/2), sob a supervisão do
+Prof. Lucas Cordeiro.
 
-> Reescrita modular e profissional do protótipo `JBMC_Projeto.py`.
-> Disciplina de Verificação de Software — Mestrado. Orientador: Prof. Lucas Cordeiro.
 
-> **Jeito mais fácil de rodar: Docker.** Um comando (`./subir.sh`) sobe tudo,
-> inclusive num computador sem internet. Veja [DOCKER.md](../DOCKER.md).
+## Origem
+
+O SMART-CPS deriva do SMART ESBMC/JBMC (rv. 1.10), plataforma de verificação formal
+com JBMC e ESBMC, classificação CWE/CERT-C, reparo guiado por contraexemplo e
+interface web. A derivação foi criada em 09/10/2026 e roda ao lado da versão
+original sem conflito: imagem `smartcps`, container `smartcps`, volume
+`smartcps-dados` e porta 8100.
+
+Em relação à rv. 1.10, o oráculo de reparo passou a reverificar o código corrigido
+com a mesma configuração da verificação que encontrou o defeito, incluindo
+`concurrency`, `strategy` (em C), `include_dirs` e `function`. Antes dessa
+correção, uma condição de corrida com o código inalterado era aceita como
+`FIX_OK`. O teste correspondente está em `tests/test_repair_herda_config.py`.
+
+As divergências conhecidas entre a especificação do projeto e a ferramenta estão
+em [inconsistencias_especificacao.md](inconsistencias_especificacao.md).
+
 
 ## Arquitetura
 
 ```
-smart-jbmc/
-├── backend/smart_jbmc/      # motor de verificação + API FastAPI
-│   ├── core/
-│   │   ├── config.py        # resolução de ferramentas (.env → tools/ → PATH)
-│   │   ├── scanner/compiler/verifiers/classify/counterexample/metrics/orchestrator
-│   │   └── repair/          # heuristic.py · regression.py · llm.py · loop.py
-│   └── api/                 # FastAPI: health · runs · browse · repair (sob /api)
-├── frontend/                # SPA (Bootstrap, tema claro/azul) consumindo o REST
-├── tools/                   # binários vendorizados opcionais (esbmc/jbmc) — não versionados
-├── data/{benchmarks,runs}/  # entradas e saídas de cada execução
-├── docs/                    # INSTALL.pdf (guia de instalação) + fontes
-├── tests/                   # pytest
-├── .env / .env.example      # caminhos das ferramentas + chave DeepSeek (NÃO versionar .env)
-├── requirements.txt · pyproject.toml
+smart-cps/
+├── backend/smart_jbmc/
+│   ├── core/            motor de verificação
+│   │   ├── config.py          resolução das ferramentas (.env, tools/, PATH)
+│   │   ├── scanner.py         localização dos arquivos-fonte e alvos
+│   │   ├── compiler.py        compilação Java/Kotlin para bytecode
+│   │   ├── verifiers/         chamadas ao JBMC e ao ESBMC
+│   │   ├── classify.py        classificação CWE/CERT-C
+│   │   ├── counterexample.py  leitura do contraexemplo
+│   │   ├── metrics.py         métricas da verificação
+│   │   ├── sarif.py           relatório no formato SARIF
+│   │   ├── orchestrator.py    coordenação de uma verificação completa
+│   │   └── repair/            heuristic, llm, loop, regression, reachability
+│   ├── api/             API REST (FastAPI), sob /api
+│   └── auth/            autenticação e usuários
+├── frontend/            interface web (HTML, JavaScript, Bootstrap)
+├── tests/               testes automatizados (pytest)
+├── docs/                documentação
+└── tools/               binários opcionais do ESBMC/JBMC (não versionados)
 ```
 
-- **Backend:** FastAPI (REST sob `/api`, docs em `/api/docs`).
-- **Front-end:** SPA estática (HTML/JS/Bootstrap) servida em `/`, consome o REST.
-- Backend e front-end são **desacoplados** (CORS habilitado).
+O backend expõe uma API REST sob `/api`, e a interface web, servida em `/`, consome
+essa API. As duas partes são independentes.
 
-## Instalação
 
-O guia completo está em **[`docs/INSTALL.pdf`](INSTALL.pdf)** (ferramentas externas,
-projeto, configuração e portabilidade). Resumo:
+## Execução sem Docker
+
+A forma recomendada de execução é o Docker, descrita no [README](../README.md) e em
+[DOCKER.md](../DOCKER.md). Para executar diretamente na máquina, é preciso instalar
+as ferramentas externas listadas ao final deste documento. O guia completo está em
+[INSTALL.pdf](INSTALL.pdf).
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
-cp .env.example .env        # ajuste os caminhos das ferramentas para a sua máquina
+cp .env.example .env        # ajustar os caminhos das ferramentas
 
 cd backend
-uvicorn smart_jbmc.api.app:app --reload --port 8000
+uvicorn smart_jbmc.api.app:app --port 8000
 ```
 
-Abra <http://localhost:8000> (SPA) e <http://localhost:8000/api/docs> (API).
+A interface fica disponível em http://localhost:8000.
 
-## Configuração de ferramentas (`.env`)
 
-Cada ferramenta externa é resolvida em **3 níveis de prioridade**, o que torna o
-projeto portátil entre máquinas:
+## Configuração das ferramentas
 
-1. **`.env`** — caminho explícito (ex.: `ESBMC_PATH=/home/.../esbmc`);
-2. **`tools/`** — binário copiado dentro do projeto (auto-detectado);
-3. **`PATH`** — fallback no sistema.
+Cada ferramenta externa é localizada em três níveis de prioridade, o que permite
+levar o projeto entre máquinas diferentes:
+
+1. `.env`: caminho explícito, por exemplo `ESBMC_PATH=/opt/esbmc/bin/esbmc`;
+2. `tools/`: binário copiado para dentro do projeto, detectado automaticamente;
+3. `PATH`: ferramenta instalada no sistema.
 
 ```ini
-ESBMC_PATH=/home/franklin/esbmc/bin/esbmc
+ESBMC_PATH=/opt/esbmc/bin/esbmc
 JBMC_PATH=/usr/bin/jbmc
-KOTLINC_PATH=/home/franklin/.sdkman/candidates/kotlin/current/bin/kotlinc
-DEEPSEEK_API_KEY=          # só para o reparo-LLM (etapa futura)
+KOTLINC_PATH=/opt/kotlinc/bin/kotlinc
+DEEPSEEK_API_KEY=
 DEEPSEEK_MODEL=deepseek-v4-flash
 ```
 
-O endpoint `/api/health` reporta, para cada ferramenta, se está disponível, o caminho
-resolvido e a origem (`env` / `vendored` / `path`).
+O endpoint `/api/health` informa, para usuários autenticados, se cada ferramenta foi
+encontrada, o caminho resolvido e a origem (`env`, `vendored` ou `path`).
 
-## Levar para outro computador
+Para levar o projeto a outro computador sem Docker, copia-se a pasta sem `.venv/`,
+`tools/` e `.env`, instalam-se as ferramentas na máquina de destino e recria-se o
+`.env`. Em máquinas Linux x86_64 equivalentes, os binários `esbmc` e `jbmc` podem ser
+copiados para `tools/`. O `kotlinc` exige sempre o SDK Kotlin e uma JRE instalados.
 
-Copie a pasta `smart-jbmc/` **sem** `.venv/`, `tools/` e `.env`. Na nova máquina:
-instale as ferramentas (ver `docs/INSTALL.pdf`), recrie o `.env` com os caminhos locais
-e rode `pip install -r requirements.txt`. Em outra máquina **Linux x86_64 igual**, os
-binários `esbmc`/`jbmc` podem ser copiados para `tools/` e são detectados sem `.env`
-(o `kotlinc` sempre exige o SDK Kotlin + JRE instalados).
 
 ## Uso da interface
 
-Abra <http://localhost:8000>. No topo, o card **Ambiente** mostra quais ferramentas
-foram encontradas. Em **Nova verificação**:
+Na tela inicial, o painel Ambiente mostra quais ferramentas foram encontradas. Em
+Nova verificação:
 
-- **Pasta** — digite o caminho ou clique em **Procurar** para navegar pelos diretórios
-  da máquina (mostra subpastas e quantos arquivos-fonte há em cada pasta).
-- Clique **Verificar** — uma **barra de progresso** mostra a fase (escanear → compilar →
-  verificar) e os alvos concluídos em tempo real.
-- Os **Resultados** trazem o resumo (BUG/SAFE/TIMEOUT/ERROR + CASTLE Score), a
-  distribuição CWE e a tabela de alvos; clique num alvo para ver o **contraexemplo**.
-- O **Histórico** lista as runs; clicar abre o relatório (o item ativo fica destacado e
-  o cabeçalho dos resultados identifica a run).
+* Pasta: caminho do projeto, digitado ou escolhido pelo botão Procurar, que mostra
+  as subpastas e a quantidade de arquivos-fonte em cada uma. Também é possível
+  enviar arquivos.
+* Verificar: inicia a verificação. Uma barra de progresso mostra a fase atual
+  (leitura, compilação, verificação) e os alvos concluídos.
+* Resultados: resumo (BUG, SAFE, TIMEOUT, ERROR e CASTLE Score), distribuição por
+  CWE e tabela de alvos. Cada alvo abre o respectivo contraexemplo.
+* Histórico: lista das verificações anteriores, com download do relatório e do
+  SARIF.
 
 ### Parâmetros de verificação
 
-| Parâmetro | Mín | Máx | O que faz | Implicação |
-|-----------|----:|----:|-----------|-----------|
-| **unwind** | 1 | ~100 | Limite de desenrolamento de loops (bound do BMC) | ↑ explora loops mais fundo → mais confiança, porém mais lento e mais memória. ↓ rápido, mas pode não alcançar bugs profundos (BMC é incompleto além do bound). Típico: 5–20. |
-| **timeout** | 1 s | 3600 s | Tempo máximo do solver por alvo | ↑ menos `TIMEOUT` em alvos difíceis, porém run mais demorada. ↓ corta alvos pesados cedo. Típico: 30–120. |
-| **jobs** | 1 | nº de núcleos | Verificações em paralelo | ↑ mais rápido em multi-core, porém usa mais CPU/RAM. `1` = sequencial (bom para depurar). |
-| **solver** | — | — | Backend SMT do ESBMC | `boolector`: rápido, bit-blasting (padrão); `z3`: forte em aritmética/teorias; `mathsat`: interpolação. O JBMC usa MiniSat (independe desta opção). |
+| Parâmetro | Faixa | Função | Efeito |
+|---|---|---|---|
+| unwind | 1 a cerca de 100 | limite de desenrolamento dos laços | valores maiores exploram laços mais profundos, com mais tempo e memória; valores menores são rápidos, mas podem não alcançar defeitos profundos. Usual: 5 a 20 |
+| timeout | 1 a 3600 s | tempo máximo do solver por alvo | valores maiores reduzem resultados `TIMEOUT` em alvos difíceis; valores menores encerram alvos pesados mais cedo. Usual: 30 a 120 |
+| jobs | 1 ao número de núcleos | verificações em paralelo | mais rapidez em processadores com vários núcleos, com maior uso de memória; `1` executa em sequência |
+| solver | boolector, z3, mathsat | solver SMT do ESBMC | `boolector` é o padrão e o mais rápido; `z3` é mais forte em aritmética; `mathsat` oferece interpolação. O JBMC usa o MiniSat, independentemente desta opção |
 
-## Reparo guiado por contraexemplo (a contribuição de pesquisa)
 
-Depois de uma verificação com bugs, a SPA mostra **"Reparar bugs"**. O ciclo:
+## Reparo guiado por contraexemplo
+
+Após uma verificação com defeitos, a interface oferece a opção Reparar. O ciclo é:
 
 ```
-BUG + contraexemplo → [LLM (DeepSeek V4) propõe patch] → grava *_FIXED
-        ▲                                                      │
-        │                                                      ▼
-   novo contraexemplo ◀──────── [JBMC/ESBMC re-verifica] ──── FIX_OK?
-   (realimenta a LLM)                    │                       │
-                                    (refina: ↓ unwind)           ▼
-                                                       patch FORMALMENTE VALIDADO
+defeito + contraexemplo ──> modelo de linguagem propõe correção ──> arquivo *_FIXED
+        ^                                                                │
+        │                                                                v
+  novo contraexemplo <──────── verificador analisa a correção ─────── resultado
 ```
 
-- O **verificador é o oráculo**: só conta como reparado (`FIX_OK`) o que o BMC prova
-  `SAFE`. Patches que não fecham (`STILL_VULNERABLE`) ou abrem outro bug
-  (`DIFFERENT_BUG`) realimentam o **novo contraexemplo** para a próxima iteração.
-- **Métricas** (a tabela-headline do artigo): taxa de reparo verificado e iterações
-  médias, por categoria — a comparar com o baseline heurístico.
-- **`dry-run`** (chave `dry_run` / switch na SPA): executa todo o loop **sem chamar a
-  API** (não consome saldo), útil para testar a fiação. O reparo real precisa de
-  `DEEPSEEK_API_KEY` no `.env` e saldo na conta DeepSeek.
-- REST: `POST /api/repair {run_id, max_iters, unwind, timeout, solver, dry_run}` e
-  `GET /api/repair/{run_id}`.
+O verificador é o oráculo: a correção só é aceita quando ele prova que o defeito
+deixou de existir. Os resultados possíveis são:
 
-> Posicionamento: o EVA (Prof. Cordeiro) faz *detecção* orquestrada por LLM; este
-> reparo verificado é o passo seguinte — para onde o *future work* do próprio artigo
-> aponta — aplicado nativamente a Java/Kotlin/C.
+| Resultado | Significado |
+|---|---|
+| `FIX_OK` | a correção foi provada pelo verificador |
+| `STILL_VULNERABLE` | o defeito permanece; o novo contraexemplo alimenta a próxima tentativa |
+| `DIFFERENT_BUG` | a correção introduziu outro defeito |
+| `INVALID_PATCH` | a correção apenas esconde o defeito (verificação removida, código tornado inalcançável) |
+| `TIMEOUT` | a reverificação excedeu o tempo limite |
+| `ERROR` | falha de compilação ou de execução da ferramenta |
+| `PROVIDER_ERROR` | falha na comunicação com o modelo de linguagem |
 
-## Roadmap
+São feitas até 5 tentativas por alvo. O modo de simulação (`dry_run`) percorre o
+ciclo completo sem chamar o modelo de linguagem, o que permite testar o
+funcionamento sem custo. O reparo real exige `DEEPSEEK_API_KEY` configurada ou um
+modelo local pelo Ollama.
 
-1. ✅ **Esqueleto + slice vertical** (`/api/health` + SPA) — concluído
-2. ✅ **Configuração portátil de ferramentas** (`core/config.py`, `.env`) — concluído
-3. ✅ **Motor `core`** (scanner, compiler, verifiers JBMC/ESBMC, classify CWE/CERT) — concluído, paridade testada
-4. ✅ **Análise + regressão + métricas** (contraexemplo, explicação, CASTLE Score, reparo heurístico, ciclo de regressão) — concluído, 22/22 testes
-   - ⏳ pendência curta: geração de testes unitários (templates JUnit/C)
-5. ✅ **Orquestração + API REST** (`core/orchestrator.py`, `POST/GET /api/runs`, persistência em `data/runs/<id>/`) — concluído, 26/26 testes
-6. ✅ **SPA completa** (formulário de run, barra de progresso real animada, resultados, distribuição CWE, detalhe do alvo com contraexemplo, histórico) — concluído
-7. ✅ **Reparo guiado por contraexemplo (DeepSeek V4)** (`core/repair/{llm,loop}.py`, `POST /api/repair`, botão na SPA com dry-run) — concluído
+Endpoints: `POST /api/repair` (parâmetros `run_id`, `max_iters`, `unwind`, `timeout`,
+`solver`, `dry_run`), `GET /api/repair/{run_id}` e `POST /api/repair/{run_id}/cancel`.
 
-## Requisitos externos
 
-`jbmc` (suite CBMC), `esbmc` ≥ 8, `javac`, `kotlinc`, `java`, `gcc`.
-Versões testadas e instruções de instalação: **[`docs/INSTALL.pdf`](INSTALL.pdf)**.
+## Testes
+
+```bash
+pytest tests/
+```
+
+Com Docker: `./subir.sh testes`. A suíte executa sem acesso à internet.
+
+
+## Requisitos externos (execução sem Docker)
+
+`jbmc` (CBMC 6.9.0), `esbmc` 8.2.0, `javac` e `java` (OpenJDK 21), `kotlinc` 2.3.21,
+`gcc` e Python 3.12. Instruções de instalação em [INSTALL.pdf](INSTALL.pdf).
