@@ -54,9 +54,16 @@ subir() {
   docker rm -f "$NOME" >/dev/null 2>&1 || true
   local envf=() rede=()
   [[ -f smartcps.env ]] && envf=(--env-file smartcps.env)
-  if [[ "${OLLAMA_NO_PC:-0}" == "1" ]]; then
-    # Só Linux: o container usa a rede do próprio PC, então enxerga o Ollama em
-    # localhost:11434 sem precisar reconfigurá-lo para 0.0.0.0.
+  # Linux com Docker Engine: por padrão o container usa a rede do próprio PC.
+  # O Ollama do Linux escuta só em 127.0.0.1, que o host.docker.internal não
+  # alcança. No Docker Desktop (Windows/macOS/WSL) o host.docker.internal já
+  # chega ao Ollama. OLLAMA_NO_PC=0 força a rede isolada.
+  local padrao=0
+  if [[ "$(uname -s)" == "Linux" ]] && ! docker info --format '{{.OperatingSystem}}' 2>/dev/null | grep -qi 'docker desktop'; then
+    padrao=1
+  fi
+  if [[ "${OLLAMA_NO_PC:-$padrao}" == "1" ]]; then
+    # O container enxerga o Ollama em localhost:11434 sem reconfigurá-lo para 0.0.0.0.
     rede=(--network host -e PORT="$PORTA" -e SMART_JBMC_OLLAMA_URL=http://localhost:11434/v1)
   else
     rede=(-p "$PORTA:8000" --add-host host.docker.internal:host-gateway)

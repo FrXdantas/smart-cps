@@ -35,4 +35,12 @@ def local_status() -> dict:
             info["error"] = f"HTTP {r.status_code}"
     except requests.RequestException as e:
         info["error"] = str(e)[:200]
+        if isinstance(e, requests.ConnectionError) and "host.docker.internal" in base:
+            # Caso típico no Linux: o Ollama está rodando, mas só em 127.0.0.1,
+            # que o container em rede isolada não alcança.
+            info["hint"] = (
+                "Se o Ollama já está rodando neste PC (Linux), recrie o container com "
+                "./subir.sh remover e depois ./subir.sh (usa a rede do PC), ou faça "
+                "o Ollama escutar em 0.0.0.0 (OLLAMA_HOST=0.0.0.0)."
+            )
     return info

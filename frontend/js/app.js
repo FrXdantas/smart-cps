@@ -1002,7 +1002,7 @@ function applyProviderUI(provider) {
         hint.innerHTML =
           '<span class="text-danger">Ollama indisponível no servidor</span>' +
           (s.error ? ' — <span class="text-muted">' + s.error + '</span>' : '') +
-          ' · Peça ao admin para rodar <code>ollama serve</code>.';
+          (s.hint ? ' · ' + s.hint : ' · Peça ao admin para rodar <code>ollama serve</code>.');
         return;
       }
       // popula o select com TODOS os modelos baixados no Ollama do servidor

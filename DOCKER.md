@@ -91,9 +91,11 @@ A **verificação** (ESBMC/JBMC) é 100% offline. O **reparo** precisa de uma LL
 - **Com internet:** chave DeepSeek no `smartcps.env`.
 - **Sem internet:** Ollama instalado no próprio computador, com um modelo já
   baixado (ex.: `qwen2.5-coder:7b`). Na tela de reparo escolha **Local (Ollama)**.
-  - **Linux:** suba com `OLLAMA_NO_PC=1 ./subir.sh`. O container passa a usar a
-    rede do próprio PC e enxerga o Ollama em `localhost:11434` sem precisar
-    reconfigurá-lo.
+  - **Linux:** o `./subir.sh` já sobe o container na rede do próprio PC, e ele
+    enxerga o Ollama em `localhost:11434` sem precisar reconfigurá-lo. Se o
+    container foi criado por uma versão anterior, rode `./subir.sh remover` e
+    `./subir.sh`. Para voltar à rede isolada, `OLLAMA_NO_PC=0 ./subir.sh`; nesse
+    caso, e também com `docker compose`, o Ollama precisa escutar em `0.0.0.0`.
   - **Windows / macOS:** funciona direto (o container acessa o Ollama do PC
     por `host.docker.internal`).
 

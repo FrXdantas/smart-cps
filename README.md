@@ -147,7 +147,9 @@ linguagem, com três opções:
   preencher `DEEPSEEK_API_KEY` e reiniciar o sistema. Requer internet.
 * Ollama (modelo local): instalar o Ollama, baixar um modelo, por exemplo
   `qwen2.5-coder:7b`, e selecionar "Local (Ollama)" na tela de reparo. No Linux,
-  iniciar com `OLLAMA_NO_PC=1 ./subir.sh`.
+  o `./subir.sh` já usa a rede do próprio PC para enxergar o Ollama; se o sistema
+  foi iniciado por uma versão anterior, executar `./subir.sh remover` e depois
+  `./subir.sh`.
 * Modo de simulação (dry-run): percorre todo o ciclo de reparo sem chamar nenhum
   modelo, útil para testar o funcionamento.
 
