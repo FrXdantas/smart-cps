@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 from . import classify, compiler, scanner, stubs
 from .counterexample import (explain_counterexample, parse_esbmc_trace_text,
-                            parse_jbmc_trace_json)
+                            parse_jbmc_trace_json, pick_violation)
 from .metrics import aggregate_cwe, castle_score, infer_oracle_from_path
 from .process import limite_memoria_mb
 from .verifiers import (available_solvers, is_no_entry_point, run_esbmc,
@@ -87,16 +87,16 @@ def _to_int(v):
     return n if n > 0 else None
 
 
-def _primary_violation(violations) -> dict | None:
-    """A violação que ancora o achado: a última, que é onde a propriedade falhou.
+def _primary_violation(violations, bug=None) -> dict | None:
+    """A violação que ancora o achado (ver `pick_violation`).
 
     Devolve None quando o trace não trouxe localização (`-`), caso em que
     inventar uma linha seria pior que não ter nenhuma — ver o ramo `sem_local`
     de `explain_counterexample`.
     """
-    if not violations:
+    v = pick_violation(bug, violations)
+    if v is None:
         return None
-    v = violations[-1]
     line = _to_int(v.get("line"))
     file = str(v.get("file") or "").strip()
     if not line or not file or file == "-":
@@ -126,7 +126,7 @@ def _build_target(kind, target, source, raw, obj, elapsed,
             steps, violations = parse_jbmc_trace_json(obj if obj is not None else raw)
         explanation = explain_counterexample(v.bug, steps, violations)
         fault_files = _fault_files(steps, violations)
-        violation = _primary_violation(violations)
+        violation = _primary_violation(violations, v.bug)
     elif v.status == "ERROR" and kind == "jbmc" and is_no_entry_point(raw):
         # Classe de biblioteca (sem `main`): alvo INAPLICÁVEL, não erro. Fica
         # fora do denominador de ERROR para o relatório não virar ruído.

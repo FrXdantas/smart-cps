@@ -13,7 +13,7 @@ Os dois parsers devolvem a MESMA forma — `(steps, violations)` — para que
 
 import re
 
-from .classify import safe_json
+from .classify import detect_bug, safe_json
 
 # =====================================================
 # TRACE DO JBMC (JSON, --json-ui)
@@ -200,11 +200,16 @@ _ESBMC_STATE_RE = re.compile(
 _ESBMC_ASSIGN_RE = re.compile(
     r"^\s+([^=\n]+?)\s*=\s*(.+?)(?:\s+\([01\s]+\))?\s*$", re.M
 )
+# Com --show-stacktrace, quando o defeito está fora do `main`, o ESBMC intercala
+# um bloco "Stack trace:" (uma linha "... at file ..." por quadro) entre o local
+# e a descrição. A condição pode faltar (ex.: "arithmetic overflow on add"
+# seguida de linha em branco), por isso é opcional e só vale a linha seguinte.
 _ESBMC_VIOLATION_RE = re.compile(
     r"Violated property:\s*\n"
     r"\s+file\s+(\S+)\s+line\s+(\d+)[^\n]*\n"
-    r"\s+([^\n]+)\n"
-    r"\s+([^\n]+)",
+    r"(?:[ \t]*Stack trace:[ \t]*\n(?:[^\n]*\bat file\b[^\n]*\n)*)?"
+    r"[ \t]+([^\n]+)"
+    r"(?:\n[ \t]+([^\n]+))?",
 )
 
 
@@ -227,7 +232,7 @@ def parse_esbmc_trace_text(text: str) -> tuple[list, list]:
     for vm in _ESBMC_VIOLATION_RE.finditer(text):
         violations.append({
             "file": vm.group(1), "line": int(vm.group(2)),
-            "description": vm.group(3).strip(), "condition": vm.group(4).strip(),
+            "description": vm.group(3).strip(), "condition": (vm.group(4) or "").strip(),
         })
     return steps, violations
 
@@ -307,12 +312,29 @@ EXPLAIN_TEMPLATES = {
 }
 
 
+def pick_violation(bug, violations) -> dict | None:
+    """A violação que ancora o achado `bug`.
+
+    O JBMC para na primeira falha, então a última violação basta. O ESBMC, com
+    --multi-property, lista várias, e a última pode ser só consequência da
+    principal (ex.: o overflow na soma de um valor lido fora do vetor). Prefere
+    a última cuja descrição classifica como o próprio `bug`.
+    """
+    if not violations:
+        return None
+    for v in reversed(violations):
+        texto = f"{v.get('description') or ''} {v.get('condition') or ''}"
+        if bug and detect_bug(texto) == bug:
+            return v
+    return violations[-1]
+
+
 def explain_counterexample(bug, esbmc_steps, esbmc_violations) -> str:
     """Explicação em duas partes: significado do bug + resumo da execução."""
     parts = [EXPLAIN_TEMPLATES.get(bug or "Unknown Failure", EXPLAIN_TEMPLATES["Unknown Failure"])]
 
     if esbmc_violations:
-        v = esbmc_violations[-1]
+        v = pick_violation(bug, esbmc_violations)
         sem_local = str(v.get("file", "-")) == "-" and str(v.get("line", "-")) == "-"
         if sem_local:
             # O verificador acusou a violação mas o trace não veio (típico de morte
@@ -339,8 +361,8 @@ def explain_counterexample(bug, esbmc_steps, esbmc_violations) -> str:
                 f"\n{titulo}:\n"
                 f"{nota}"
                 f"  arquivo {v['file']}, linha {v['line']}\n"
-                f"  descrição: {v['description']}\n"
-                f"  condição que falha: {v['condition']}"
+                f"  descrição: {v['description']}"
+                + (f"\n  condição que falha: {v['condition']}" if v.get("condition") else "")
             )
 
     relevant = []

@@ -39,6 +39,50 @@ def test_parse_esbmc_trace():
     assert violations[-1]["line"] == 3
 
 
+# Saída REAL do ESBMC (--multi-property --show-stacktrace) sobre exemplos/c/notas.c:
+# o defeito está fora do `main`, então vem o bloco "Stack trace:" no meio.
+ESBMC_STACKTRACE_SAMPLE = """\
+State 1 file notas.c line 15 column 9 function soma_notas thread 0
+----------------------------------------------------
+Violated property:
+  file notas.c line 15 column 9 function soma_notas
+Stack trace:
+  c:@F@soma_notas at file notas.c line 22 column 16 function main
+  c:@F@main at file notas.c line 20 column 1
+  dereference failure: array bounds violated
+  !overflow("+", soma, notas[(signed long int)i])
+
+Slicing time: 0.000s (removed 3 assignments)
+
+State 1 file notas.c line 15 column 9 function soma_notas thread 0
+----------------------------------------------------
+Violated property:
+  file notas.c line 15 column 9 function soma_notas
+Stack trace:
+  c:@F@soma_notas at file notas.c line 22 column 16 function main
+  c:@F@main at file notas.c line 20 column 1
+  arithmetic overflow on add
+
+VERIFICATION FAILED
+"""
+
+
+def test_parse_esbmc_trace_com_stacktrace():
+    _, violations = parse_esbmc_trace_text(ESBMC_STACKTRACE_SAMPLE)
+    assert [v["line"] for v in violations] == [15, 15]
+    assert violations[0]["description"] == "dereference failure: array bounds violated"
+    assert violations[1]["description"] == "arithmetic overflow on add"
+    assert violations[1]["condition"] == ""
+
+
+def test_explain_prefere_violacao_do_bug():
+    """Com várias violações, a explicação ancora na do bug classificado, não na última."""
+    _, violations = parse_esbmc_trace_text(ESBMC_STACKTRACE_SAMPLE)
+    text = explain_counterexample("Array Out Of Bounds", [], violations)
+    assert "array bounds violated" in text
+    assert "arithmetic overflow on add" not in text
+
+
 def test_explain_counterexample():
     _, violations = parse_esbmc_trace_text(ESBMC_SAMPLE)
     text = explain_counterexample("Division by Zero", [], violations)
