@@ -151,30 +151,27 @@ body {
 }
 .dica { color: var(--texto-suave); font-size: .85rem; font-weight: 400; }
 
-/* Números do resumo: um filete colorido à esquerda dá o status sem pintar o cartão. */
-.stat {
-  border-left: 4px solid var(--cor-status, var(--borda));
-  text-align: left;
-}
-.stat .card-body { padding: .55rem .8rem; }
-.stat .valor { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
-.stat .rotulo { font-size: .78rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .4px; }
-
-/* Ajuda "(?)": círculo pequeno em vez do texto entre parênteses. */
-.ajuda {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.05rem;
-  height: 1.05rem;
-  margin-left: .2rem;
+/* Resumo da run: faixa única, números neutros, divisórias finas. */
+.resumo {
+  display: flex;
+  flex-wrap: wrap;
   border: 1px solid var(--borda);
-  border-radius: 50%;
-  font-size: .7rem;
-  color: var(--texto-suave);
-  cursor: help;
-  vertical-align: text-top;
+  border-radius: .5rem;
+  background: var(--superficie);
+  overflow: hidden;
 }
+.resumo-item {
+  flex: 1 1 100px;
+  display: flex;
+  flex-direction: column;
+  padding: .55rem .9rem;
+  border-right: 1px solid var(--borda);
+  margin-right: -1px;
+}
+.resumo-item .valor { font-size: 1.25rem; font-weight: 600; line-height: 1.25; color: var(--texto); }
+.resumo-item .rotulo { font-size: .8rem; color: var(--texto-suave); }
+
+.settings-dialog-largo { max-width: 560px; }
 
 .border-dashed {
   border: 1px dashed var(--borda) !important;
@@ -193,7 +190,9 @@ body {
 .history-item:hover { background-color: var(--marca-suave); }
 .history-item.active {
   background-color: var(--marca-suave);
+  border-color: var(--borda);
   border-left: 4px solid var(--marca);
+  color: var(--texto);
   font-weight: 500;
 }
 .history-del {

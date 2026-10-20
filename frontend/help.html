@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ajuda: SMART ESBMC / JBMC rv. 1.11-cps</title>
+  <script src="js/tema.js?v=1"></script>
+  <link href="vendor/bootstrap.min.css" rel="stylesheet">
+  <link href="css/styles.css?v=16" rel="stylesheet">
+  <style>
+    .ajuda-indice { position: sticky; top: 1rem; font-size: .9rem; }
+    .ajuda-indice a { display: block; padding: .2rem 0; color: var(--texto-suave); text-decoration: none; }
+    .ajuda-indice a:hover { color: var(--marca); }
+    .ajuda-texto h2 { font-size: 1.3rem; font-weight: 700; margin-top: 2.2rem; padding-top: .4rem; }
+    .ajuda-texto h2:first-child { margin-top: 0; }
+    .ajuda-texto h3 { font-size: 1.02rem; font-weight: 600; margin-top: 1.4rem; }
+    .ajuda-texto p, .ajuda-texto li { line-height: 1.6; }
+    .ajuda-texto pre {
+      background: var(--codigo-fundo); border: 1px solid var(--borda); border-radius: .4rem;
+      padding: .7rem .9rem; font-size: .84rem; color: var(--texto);
+    }
+    .ajuda-texto dt { font-weight: 600; margin-top: .7rem; }
+    .ajuda-texto dd { margin-left: 0; color: var(--texto); }
+    .ajuda-texto .table { font-size: .9rem; }
+    .ajuda-texto code { color: var(--marca-forte); }
+    .passos { counter-reset: passo; list-style: none; padding-left: 0; }
+    .passos > li { counter-increment: passo; position: relative; padding-left: 2.1rem; margin-bottom: .6rem; }
+    .passos > li::before {
+      content: counter(passo); position: absolute; left: 0; top: .1rem;
+      width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 1px solid var(--borda);
+      text-align: center; font-size: .8rem; line-height: 1.4rem; color: var(--texto-suave);
+    }
+    section { scroll-margin-top: 1rem; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar app-bar py-2">
+  <div class="container flex-wrap gap-2">
+    <a class="marca text-decoration-none" href="/">SMART ESBMC / JBMC<span class="versao">rv. 1.11-cps</span></a>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <a href="/" class="btn btn-sm btn-outline-primary">Voltar ao painel</a>
+      <button type="button" class="btn btn-sm btn-discreto" data-tema-btn>Tema escuro</button>
+    </div>
+  </div>
+</nav>
+
+<main class="container py-4">
+  <div class="row g-4">
+    <aside class="col-lg-3 d-none d-lg-block">
+      <nav class="ajuda-indice">
+        <a href="#visao">O que a ferramenta faz</a>
+        <a href="#primeiro">Primeira verificação</a>
+        <a href="#resultados">Como ler os resultados</a>
+        <a href="#opcoes">Opções da verificação</a>
+        <a href="#projeto">Opções de projeto</a>
+        <a href="#reparo">Guia do reparo</a>
+        <a href="#exportar">Baixar e exportar</a>
+        <a href="#limites">Limites conhecidos</a>
+      </nav>
+    </aside>
+
+    <article class="col-lg-9 ajuda-texto">
+
+      <section id="visao">
+        <h2>O que a ferramenta faz</h2>
+        <p>A ferramenta procura defeitos em programas C, Java e Kotlin com verificação formal. Em vez de
+          executar testes, ela examina todos os caminhos do programa até um limite e, quando acha um
+          defeito, mostra a execução que leva até ele (o contraexemplo).</p>
+        <ol class="passos">
+          <li>Você escolhe uma pasta com os arquivos-fonte.</li>
+          <li>O ESBMC (para C) ou o JBMC (para Java e Kotlin) verifica cada arquivo.</li>
+          <li>Cada defeito encontrado recebe uma categoria CWE e a regra CERT correspondente.</li>
+          <li>Se quiser, um modelo de linguagem propõe um conserto. O conserto só é aceito depois que o
+            verificador roda de novo e confirma que o defeito sumiu.</li>
+        </ol>
+      </section>
+
+      <section id="primeiro">
+        <h2>Primeira verificação: um arquivo simples</h2>
+        <p>Crie uma pasta com este programa em C. O laço vai até <code>i &lt;= N</code> e lê uma posição
+          além do fim do vetor.</p>
+<pre>#define N 5
+int notas[N] = {7, 8, 6, 9, 10};
+
+int main(void) {
+  int soma = 0;
+  for (int i = 0; i &lt;= N; i++)   /* deveria ser i &lt; N */
+    soma += notas[i];
+  return soma / N;
+}</pre>
+        <ol class="passos">
+          <li>Em <strong>Nova verificação</strong>, clique em <strong>Enviar pasta</strong> e escolha a pasta do
+            seu computador. Quem administra o servidor também pode usar <strong>Procurar no servidor</strong>.</li>
+          <li>Coloque <strong>unwind</strong> em 6 ou mais. O laço dá 6 voltas e o defeito está na última; com
+            5, o verificador não chega até ela e o resultado sai SAFE.</li>
+          <li>Clique em <strong>Verificar</strong>. O resultado esperado é BUG, CWE-125 (leitura fora do
+            vetor).</li>
+          <li>Clique na linha do arquivo, na tabela de alvos, para ver o contraexemplo: a linha do
+            defeito, a condição que falhou e os valores das variáveis até ali.</li>
+        </ol>
+        <p>A pasta <code>exemplos/</code> do repositório traz este caso (<code>c/notas.c</code>) e um em Kotlin
+          (<code>kotlin/Media.kt</code>, divisão por zero com a lista vazia, CWE-369).</p>
+
+        <h3>Uma pasta com vários arquivos</h3>
+        <p>Cada arquivo é um alvo e é verificado separado, a partir do <code>main</code>. Um arquivo C sem
+          <code>main</code> sai como ERROR, e uma classe Java ou Kotlin sem <code>main</code> sai como
+          <strong>SEM MAIN</strong>. Para verificar esses arquivos, indique uma função de entrada ou junte os
+          arquivos (veja <a href="#projeto">Opções de projeto</a>).</p>
+
+        <h3>Medir acerto com gabarito</h3>
+        <p>Se os arquivos estiverem em pastas chamadas <code>com_bug</code> e <code>sem_bug</code> (também
+          valem <code>bug</code>/<code>safe</code>), a ferramenta compara o resultado com o gabarito e calcula
+          a pontuação CASTLE, além de precisão e revocação.</p>
+      </section>
+
+      <section id="resultados">
+        <h2>Como ler os resultados</h2>
+        <table class="table table-sm">
+          <thead><tr><th>Status</th><th>O que significa</th></tr></thead>
+          <tbody>
+            <tr><td><strong>BUG</strong></td><td>O verificador achou uma execução que viola uma propriedade. Há contraexemplo.</td></tr>
+            <tr><td><strong>SAFE</strong></td><td>Nenhuma violação até o limite escolhido (unwind). Não é prova para qualquer tamanho de entrada.</td></tr>
+            <tr><td><strong>UNKNOWN</strong></td><td>O limite não cobriu algum laço (estratégia sound ou k-induction). Aumente o unwind.</td></tr>
+            <tr><td><strong>TIMEOUT</strong></td><td>O tempo acabou antes da resposta. Aumente o timeout ou reduza o unwind.</td></tr>
+            <tr><td><strong>ERROR</strong></td><td>O verificador não conseguiu analisar o arquivo (por exemplo, header ausente, ou C sem <code>main</code>).</td></tr>
+            <tr><td><strong>COMPILE_FAIL</strong></td><td>Java ou Kotlin que não compilou. Clique na linha para ver o erro.</td></tr>
+            <tr><td><strong>SEM MAIN</strong></td><td>Classe Java ou Kotlin sem ponto de entrada. Não é erro: não há o que verificar sozinha.</td></tr>
+          </tbody>
+        </table>
+        <p>Nas colunas, <strong>CWE</strong> é a categoria do defeito no catálogo MITRE e <strong>CERT</strong>
+          traz a prioridade (P1 a P27) e o nível (L1 é o mais urgente). <strong>CASTLE</strong> só aparece
+          quando há gabarito (pastas <code>com_bug</code>/<code>sem_bug</code>).</p>
+      </section>
+
+      <section id="opcoes">
+        <h2>Opções da verificação</h2>
+        <dl>
+          <dt>Estratégia</dt>
+          <dd>Como os laços são tratados.
+            <ul>
+              <li><strong>bounded</strong> (padrão): desenrola cada laço até o unwind. Rápido, mas SAFE só vale até esse limite.</li>
+              <li><strong>sound</strong>: se o unwind não cobrir um laço, o resultado é UNKNOWN em vez de SAFE.</li>
+              <li><strong>incremental-bmc</strong>: aumenta o unwind sozinho até achar o defeito ou acabar o tempo. Bom quando você não sabe quantas voltas o laço dá.</li>
+              <li><strong>k-induction</strong>: tenta provar o laço por indução, sem desenrolar tudo. Pode dar UNKNOWN.</li>
+            </ul>
+            incremental-bmc e k-induction existem só no ESBMC (C). Em Java e Kotlin, o JBMC usa bounded.</dd>
+
+          <dt>unwind</dt>
+          <dd>Quantas voltas de cada laço são examinadas. Valor maior acha defeitos mais fundos, mas gasta mais
+            tempo e memória. Típico: 5 a 20.</dd>
+
+          <dt>timeout (s)</dt>
+          <dd>Tempo máximo por arquivo. Valor maior reduz os TIMEOUT em casos difíceis; valor menor corta cedo
+            os casos pesados. Típico: 30 a 120.</dd>
+
+          <dt>jobs</dt>
+          <dd>Quantos arquivos são verificados ao mesmo tempo. Mais jobs termina antes, mas usa mais CPU e
+            memória. Use 1 em casos pesados (por exemplo, com concorrência).</dd>
+
+          <dt>solver</dt>
+          <dd>O resolvedor usado pelo ESBMC. boolector é o padrão e o mais rápido; z3 costuma ir melhor com
+            aritmética pesada. A lista mostra só os que estão instalados. O JBMC usa o próprio resolvedor.</dd>
+
+          <dt>Propriedades opcionais</dt>
+          <dd>Desligadas por padrão. Ligue só quando procurar esse tipo de defeito.
+            <ul>
+              <li><strong>Overflow unsigned</strong>: acusa estouro em <code>size_t</code> e <code>unsigned</code>
+                (CWE-190), como em cálculo de tamanho de alocação. O estouro com sinal é sempre verificado.
+                Fica desligado porque muito código usa a volta do unsigned de propósito (hash, buffer circular).</li>
+              <li><strong>Concorrência</strong>: procura corrida de dados (CWE-362) e impasse (CWE-833) entre
+                threads <code>pthread</code>. Deixa a verificação bem mais lenta.</li>
+              <li><strong>NaN em ponto flutuante</strong>: acusa operações que geram NaN, como 0/0 ou
+                infinito menos infinito (CWE-682, regra FLP32-C).</li>
+            </ul></dd>
+        </dl>
+      </section>
+
+      <section id="projeto">
+        <h2>Opções de projeto</h2>
+        <p>Ficam no botão <strong>Opções de projeto</strong>, abaixo dos parâmetros. Servem para verificar
+          parte de um projeto maior sem compilar o projeto inteiro. Para arquivos simples, deixe tudo vazio.
+          O que estiver definido aparece escrito ao lado do botão.</p>
+        <dl>
+          <dt>Pastas de headers (-I)</dt>
+          <dd>Pastas onde estão os <code>.h</code> que o arquivo inclui, uma por linha. Sem elas, o
+            verificador para com erro de análise antes de começar. Funções externas sem código são tratadas
+            como caixas-pretas, por isso não é preciso compilar o projeto.</dd>
+
+          <dt>Arquivos verificados juntos</dt>
+          <dd>Lista de <code>.c</code> que formam um programa só, um por linha, com o do <code>main</code>
+            primeiro. Exemplo: <code>repl.c</code> e <code>tinyexpr.c</code>. Sem isso, cada arquivo é verificado
+            sozinho e as funções dos outros viram caixas-pretas, o que esconde defeitos entre arquivos.</dd>
+
+          <dt>Função de entrada (--function)</dt>
+          <dd>Verifica uma função específica como se fosse o <code>main</code>. Os argumentos recebem qualquer
+            valor possível, então não é preciso escrever um programa de teste. Útil para firmware e
+            bibliotecas, que não têm <code>main</code>. Vazio usa o <code>main</code>.</dd>
+        </dl>
+      </section>
+
+      <section id="reparo">
+        <h2>Guia do reparo</h2>
+        <p>O reparo usa um modelo de linguagem para propor a correção e o verificador para julgá-la. Ele
+          aparece abaixo dos resultados quando a run tem pelo menos um BUG.</p>
+
+        <h3>1. Configurar o modelo</h3>
+        <ol class="passos">
+          <li>Clique em <strong>Configurar LLM</strong>.</li>
+          <li>Escolha o provedor: DeepSeek, Groq, OpenRouter, Local (Ollama, roda na própria máquina e não
+            precisa de chave) ou Personalizado.</li>
+          <li>Cole a chave da API e escolha o modelo. A chave fica só no seu navegador; o servidor não a grava
+            em disco.</li>
+        </ol>
+        <p>Para ver o funcionamento sem gastar saldo, ligue <strong>dry-run</strong>: o laço roda, mas sem
+          chamar o modelo, e o código volta inalterado.</p>
+
+        <h3>2. Reparar</h3>
+        <ol class="passos">
+          <li>Clique em <strong>Reparar bugs</strong>. Cada alvo com BUG passa pelo laço abaixo, até 5 tentativas.</li>
+          <li>O modelo recebe o código, a CWE, a regra CERT e o contraexemplo, e devolve o arquivo corrigido.</li>
+          <li>Antes do verificador, o conserto passa por guardas que recusam truques: apagar ou reescrever a
+            asserção que falhava, acrescentar <code>assume</code>, ou tornar o trecho do defeito inalcançável.</li>
+          <li>O verificador roda de novo com a <strong>mesma configuração</strong> da run (unwind, timeout,
+            solver, estratégia e propriedades). Se o defeito continuar, o novo contraexemplo volta para o
+            modelo na próxima tentativa.</li>
+        </ol>
+        <p><strong>Só os que faltam</strong>, ligado por padrão, pula os alvos já reparados num reparo
+          anterior da mesma run. O botão <strong>Parar</strong> encerra depois da tentativa em curso e mantém
+          o que já foi reparado.</p>
+
+        <h3>3. Ler o resultado de cada tentativa</h3>
+        <table class="table table-sm">
+          <thead><tr><th>Veredicto</th><th>O que significa</th></tr></thead>
+          <tbody>
+            <tr><td><strong>FIX_OK</strong></td><td>O verificador confirmou que o defeito sumiu. O alvo fica como REPAIRED.</td></tr>
+            <tr><td><strong>STILL_VULNERABLE</strong></td><td>O mesmo defeito continua. Nova tentativa com o novo contraexemplo.</td></tr>
+            <tr><td><strong>DIFFERENT_BUG</strong></td><td>O conserto trocou um defeito por outro.</td></tr>
+            <tr><td><strong>INVALID_PATCH</strong></td><td>Recusado pelas guardas, sem chegar ao verificador.</td></tr>
+            <tr><td><strong>PROVIDER_ERROR</strong></td><td>O provedor do modelo recusou a chamada (limite de uso, 429). Não conta como falha de reparo.</td></tr>
+            <tr><td><strong>TIMEOUT</strong> / <strong>ERROR</strong></td><td>A reverificação não terminou ou não compilou.</td></tr>
+          </tbody>
+        </table>
+        <p>Clique num alvo do reparo para ver a trilha das tentativas e o código original ao lado do corrigido.
+          Um FIX_OK prova que aquele defeito sumiu até o limite usado; vale revisar o conserto antes de
+          aplicá-lo, porque mudar uma constante, por exemplo, pode passar sem corrigir a lógica.</p>
+      </section>
+
+      <section id="exportar">
+        <h2>Baixar e exportar</h2>
+        <ul>
+          <li><strong>SARIF</strong>: os achados no formato aberto lido pelo VS Code, pelo GitHub e por CI, com a
+            configuração exata da run e, quando houver, o conserto verificado.</li>
+          <li><strong>Baixar pasta</strong>: um .zip com os arquivos originais e os corrigidos ao lado, com o
+            sufixo <code>_FIXED</code>. Pela seta ao lado, dá para baixar só os originais.</li>
+          <li><strong>Exportar relatório (.md)</strong>: resumo do reparo em texto, com a trilha de cada alvo.</li>
+          <li><strong>Histórico</strong>: clique numa run para reabrir o relatório; <strong>apagar</strong> remove a run e
+            a pasta dela no servidor.</li>
+        </ul>
+      </section>
+
+      <section id="limites">
+        <h2>Limites conhecidos</h2>
+        <ul>
+          <li>SAFE vale só até o unwind escolhido. Um defeito mais fundo pode passar.</li>
+          <li>C++ com a biblioteca padrão (por exemplo, <code>std::shared_ptr</code>) não é suportado pelo
+            ESBMC 8.2. Use C ou unidades pequenas sem a STL.</li>
+          <li>A conversão para um inteiro menor que não cabe no tipo (o truncamento em ponto fixo, como em
+            Q15) ainda não é detectada: em C ela não é erro para o verificador.</li>
+          <li>Estouro e NaN em ponto flutuante usam a CWE-682 (cálculo incorreto), porque não existe CWE
+            própria para eles. A regra CERT diferencia: FLP03-C para estouro, FLP32-C para NaN.</li>
+          <li>Em Java e Kotlin, coleções como <code>ArrayList</code> e <code>HashMap</code> podem gerar alarmes
+            até em código correto.</li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
+</main>
+
+<footer class="text-center text-muted small py-3 border-top">
+  SMART ESBMC/JBMC · 2026
+</footer>
+</body>
+</html>

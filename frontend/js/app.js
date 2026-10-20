@@ -225,16 +225,10 @@ function finishRun(rec) {
 }
 
 // ---------------- renderização ----------------
-// filete à esquerda na cor do status; total e contagens neutras ficam em cinza
-const COR_STATUS = { "text-danger": "var(--bs-danger)", "text-success": "var(--bs-success)",
-                     "text-warning": "var(--bs-warning)", "text-primary": "var(--marca)" };
-
-function summaryCard(label, value, cls) {
-  return `<div class="col-6 col-md"><div class="card stat" style="--cor-status: ${COR_STATUS[cls] || "var(--borda)"}">
-    <div class="card-body">
-      <div class="valor ${cls}">${value}</div>
-      <div class="rotulo">${label}</div>
-    </div></div></div>`;
+// Resumo da run: uma faixa só, números em cor neutra. O status de cada alvo já
+// aparece colorido na tabela; repetir a cor aqui só competia com ela.
+function summaryCard(label, value) {
+  return `<div class="resumo-item"><span class="valor">${value}</span><span class="rotulo">${label}</span></div>`;
 }
 
 function fmtWhen(iso) {
@@ -256,15 +250,15 @@ function renderResults(rec) {
   const s = result.summary || {};
   const m = result.metrics || {};
   document.getElementById("summary-cards").innerHTML =
-    summaryCard("Total", s.total || 0, "text-body") +
-    summaryCard("BUG", s.BUG || 0, "text-danger") +
-    summaryCard("SAFE", s.SAFE || 0, "text-success") +
-    (s.UNKNOWN ? summaryCard("UNKNOWN", s.UNKNOWN, "text-warning") : "") +
-    summaryCard("TIMEOUT", s.TIMEOUT || 0, "text-warning") +
-    summaryCard("ERROR", s.ERROR || 0, "text-secondary") +
-    (s.COMPILE_FAIL ? summaryCard("COMPILE_FAIL", s.COMPILE_FAIL, "text-body") : "") +
-    (s.NO_ENTRY_POINT ? summaryCard("SEM MAIN", s.NO_ENTRY_POINT, "text-secondary") : "") +
-    summaryCard("CASTLE", m.castle_score ?? "—", "text-primary");
+    summaryCard("Total", s.total || 0) +
+    summaryCard("BUG", s.BUG || 0) +
+    summaryCard("SAFE", s.SAFE || 0) +
+    (s.UNKNOWN ? summaryCard("UNKNOWN", s.UNKNOWN) : "") +
+    summaryCard("TIMEOUT", s.TIMEOUT || 0) +
+    summaryCard("ERROR", s.ERROR || 0) +
+    (s.COMPILE_FAIL ? summaryCard("COMPILE_FAIL", s.COMPILE_FAIL) : "") +
+    (s.NO_ENTRY_POINT ? summaryCard("SEM MAIN", s.NO_ENTRY_POINT) : "") +
+    summaryCard("CASTLE", m.castle_score ?? "—");
 
   // avisos de compilação (unidades que não compilaram) — não somem mais em silêncio
   const warns = result.warnings || [];
@@ -457,12 +451,12 @@ function renderRepair(result) {
   lastRepairRunId = currentRunId;
   const s = result.summary || {};
   document.getElementById("repair-summary").innerHTML =
-    summaryCard("Bugs", s.total || 0, "text-danger") +
-    summaryCard("Reparados", s.repaired || 0, "text-success") +
-    summaryCard("Não reparados", s.not_repaired || 0, "text-secondary") +
-    (s.provider_errors ? summaryCard("Erros provedor (429)", s.provider_errors, "text-warning") : "") +
-    summaryCard("Iter. médias", s.avg_iterations_when_repaired || 0, "text-primary") +
-    summaryCard("Tok/s médio", s.avg_tok_s || 0, "text-info");
+    summaryCard("Bugs", s.total || 0) +
+    summaryCard("Reparados", s.repaired || 0) +
+    summaryCard("Não reparados", s.not_repaired || 0) +
+    (s.provider_errors ? summaryCard("Erros provedor (429)", s.provider_errors) : "") +
+    summaryCard("Iter. médias", s.avg_iterations_when_repaired || 0) +
+    summaryCard("Tok/s médio", s.avg_tok_s || 0);
   curRepair = result.targets || [];
   repPage = 1;
   renderRepairTable();
@@ -935,6 +929,23 @@ function openSettings() {
   document.getElementById("settings-overlay").classList.remove("d-none");
 }
 
+function closeAdv() {
+  document.getElementById("adv-overlay").classList.add("d-none");
+  updateAdvSummary();
+}
+
+// Mostra ao lado do botão o que está definido, para a opção não ficar
+// escondida no pop-up e valer numa run sem a pessoa perceber.
+function updateAdvSummary() {
+  const n = (id) => (document.getElementById(id).value || "").split("\n").filter((l) => l.trim()).length;
+  const partes = [];
+  if (n("f-include-dirs")) partes.push(`${n("f-include-dirs")} pasta(s) de headers`);
+  if (n("f-link-unit")) partes.push(`${n("f-link-unit")} arquivo(s) juntos`);
+  const fn = document.getElementById("f-function").value.trim();
+  if (fn) partes.push(`entrada ${fn}()`);
+  document.getElementById("adv-resumo").textContent = partes.length ? partes.join(", ") : "nenhuma definida";
+}
+
 function closeSettings() {
   document.getElementById("settings-overlay").classList.add("d-none");
 }
@@ -1114,6 +1125,21 @@ function init() {
   document.getElementById("browser-up").addEventListener("click", (e) => {
     const parent = e.currentTarget.dataset.parent;
     if (parent) browseTo(parent);
+  });
+
+  // Pop-up das opções de projeto (-I, arquivos juntos, função de entrada)
+  document.getElementById("btn-adv").addEventListener("click", () =>
+    document.getElementById("adv-overlay").classList.remove("d-none"));
+  document.getElementById("adv-close").addEventListener("click", closeAdv);
+  document.getElementById("adv-ok").addEventListener("click", closeAdv);
+  document.getElementById("adv-clear").addEventListener("click", () => {
+    ["f-include-dirs", "f-link-unit", "f-function"].forEach((id) => {
+      document.getElementById(id).value = "";
+    });
+    updateAdvSummary();
+  });
+  document.getElementById("adv-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "adv-overlay") closeAdv();
   });
 
   // Pop-up de configuração do LLM (navbar + no card de reparo, na hora do contraexemplo)
