@@ -96,6 +96,23 @@ body {
   background: currentColor;
   vertical-align: .05rem;
 }
+/* Caixa "em uso": só aparece com verificador ou compilador rodando */
+.caixa-uso.ativa {
+  padding: .15rem .55rem;
+  border: 1px solid var(--marca);
+  border-radius: .35rem;
+  background: var(--marca-suave);
+}
+.caixa-uso .uso-nome { color: var(--marca); }
+.caixa-uso .uso-sep {
+  display: inline-block;
+  width: 1px;
+  height: .9em;
+  margin: 0 .5rem;
+  background: var(--borda);
+  vertical-align: -.1em;
+}
+
 /* Ambiente e usuário juntos à direita, separados por um filete */
 .app-bar .usuario {
   padding-left: 1rem;

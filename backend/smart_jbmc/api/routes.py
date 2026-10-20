@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from .. import __version__
 from ..auth.deps import optional_user
 from ..core.config import tools_status
-from ..core.process import memoria_maquina
+from ..core.process import ferramentas_em_uso, memoria_maquina
 from ..core.repair import llm as _llm
 
 router = APIRouter()
@@ -40,6 +40,15 @@ class MemInfo(BaseModel):
     nivel: str                      # ok | atencao | alerta
 
 
+class EmUso(BaseModel):
+    """Verificador ou compilador rodando agora (caixa da barra superior)."""
+
+    nome: str
+    papel: str                      # verificador | compilador
+    rss_mb: int
+    tempo_s: int
+
+
 class HealthResponse(BaseModel):
     """Só `status` é público. O resto (versão, caminhos dos binários, LLM do
     servidor) sai apenas para chamador autenticado — ver `health()`."""
@@ -49,6 +58,7 @@ class HealthResponse(BaseModel):
     tools: dict[str, ToolInfo] | None = None
     llm: LLMInfo | None = None
     memoria: MemInfo | None = None
+    em_uso: list[EmUso] | None = None
 
 
 @router.get("/health", response_model=HealthResponse, tags=["system"])
@@ -75,4 +85,5 @@ def health(user: dict[str, Any] | None = Depends(optional_user)) -> HealthRespon
             model=_llm.default_model() if tem_chave else None,
         ),
         memoria=memoria_maquina(),
+        em_uso=ferramentas_em_uso(),
     )

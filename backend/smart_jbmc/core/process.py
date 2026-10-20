@@ -66,6 +66,62 @@ def memoria_maquina(meminfo: str = "/proc/meminfo") -> dict | None:
     return {"total_mb": total, "usado_mb": usado, "pct": pct, "nivel": nivel}
 
 
+# Processos que a barra superior mostra durante uma verificação. O kotlinc é um
+# script que vira `java ... org.jetbrains.kotlin...`, então é reconhecido pela
+# linha de comando; os demais pelo nome do processo.
+_VERIFICADORES = {"esbmc", "jbmc"}
+_COMPILADORES = {"javac", "kotlinc"}
+
+
+def ferramentas_em_uso(proc: str = "/proc") -> list[dict]:
+    """Verificadores e compiladores rodando agora: nome, papel, RAM e tempo.
+
+    Lê /proc direto (sem psutil). No Docker só aparecem os processos do
+    contêiner, que são justamente os da ferramenta. Lista vazia fora do Linux.
+    """
+    try:
+        pids = [d for d in os.listdir(proc) if d.isdigit()]
+        with open(os.path.join(proc, "uptime"), encoding="ascii") as f:
+            uptime = float(f.read().split()[0])
+        hz = os.sysconf("SC_CLK_TCK")
+    except (OSError, ValueError):
+        return []
+    achados = []
+    for pid in pids:
+        base = os.path.join(proc, pid)
+        try:
+            with open(os.path.join(base, "comm"), encoding="utf-8") as f:
+                nome = f.read().strip()
+            if nome == "java":
+                with open(os.path.join(base, "cmdline"), "rb") as f:
+                    if b"kotlin" not in f.read():
+                        continue
+                nome = "kotlinc"
+            if nome not in _VERIFICADORES | _COMPILADORES:
+                continue
+            rss_kb = 0
+            with open(os.path.join(base, "status"), encoding="utf-8") as f:
+                for linha in f:
+                    if linha.startswith("VmRSS:"):
+                        rss_kb = int(linha.split()[1])
+                        break
+            with open(os.path.join(base, "stat"), encoding="utf-8") as f:
+                # o nome vem entre parênteses e pode ter espaços: corta depois dele
+                campos = f.read().rsplit(")", 1)[1].split()
+            if campos[0] == "Z":
+                continue                              # já terminou (zumbi), sem memória
+            inicio_s = int(campos[19]) / hz          # campo 22 do stat (starttime)
+        except (OSError, ValueError, IndexError):
+            continue                                  # processo terminou no meio da leitura
+        achados.append({
+            "nome": nome,
+            "papel": "verificador" if nome in _VERIFICADORES else "compilador",
+            "rss_mb": rss_kb // 1024,
+            "tempo_s": max(0, round(uptime - inicio_s)),
+        })
+    return sorted(achados, key=lambda a: (a["papel"] != "verificador", -a["rss_mb"]))
+
+
 @dataclass
 class ToolResult:
     """Resultado de um subprocesso (verificador/compilador)."""

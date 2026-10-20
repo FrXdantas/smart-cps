@@ -71,3 +71,30 @@ def test_memoria_maquina_niveis(tmp_path):
     # MemAvailable conta o cache que o kernel devolve; MemFree sozinho não
     assert com(800000)["pct"] == 20
     assert memoria_maquina(str(tmp_path / "nao_existe")) is None
+
+
+def test_ferramentas_em_uso_le_proc(tmp_path):
+    """Verificador e compilador rodando aparecem com RAM e tempo; zumbi e
+    processo comum, não. O kotlinc é um `java` com kotlin na linha de comando."""
+    from smart_jbmc.core.process import ferramentas_em_uso
+
+    (tmp_path / "uptime").write_text("1000.0 0.0\n")
+
+    def proc(pid, comm, rss_kb, estado="R", cmdline=b""):
+        d = tmp_path / str(pid)
+        d.mkdir()
+        (d / "comm").write_text(comm + "\n")
+        (d / "cmdline").write_bytes(cmdline)
+        (d / "status").write_text(f"Name:\t{comm}\nVmRSS:\t{rss_kb} kB\n")
+        campos = [estado] + ["0"] * 18 + ["90000"]      # starttime = 900 s (100 Hz)
+        (d / "stat").write_text(f"{pid} ({comm}) " + " ".join(campos) + "\n")
+
+    proc(10, "esbmc", 2 * 1024 * 1024)
+    proc(11, "java", 300 * 1024, cmdline=b"java\0-cp\0kotlin-compiler.jar\0org.jetbrains.kotlin.cli")
+    proc(12, "java", 500 * 1024, cmdline=b"java\0-jar\0outra.jar")
+    proc(13, "jbmc", 0, estado="Z")
+    proc(14, "bash", 4 * 1024)
+    achados = ferramentas_em_uso(str(tmp_path))
+    assert [(a["nome"], a["papel"]) for a in achados] == [("esbmc", "verificador"), ("kotlinc", "compilador")]
+    assert achados[0]["rss_mb"] == 2048
+    assert achados[0]["tempo_s"] == 1000 - 90000 // __import__("os").sysconf("SC_CLK_TCK")

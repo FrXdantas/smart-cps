@@ -785,6 +785,23 @@ function renderRam(m) {
   el.textContent = `RAM ${gb(m.usado_mb)} / ${gb(m.total_mb)} GB${aviso}`;
 }
 
+// Caixa da barra durante a verificação: o que está rodando agora (verificador e
+// compilador), com memória e tempo de cada um, junto da RAM da máquina.
+function renderEmUso(lista) {
+  const el = document.getElementById("em-uso");
+  const caixa = document.getElementById("caixa-uso");
+  const ativos = lista || [];
+  caixa.classList.toggle("ativa", ativos.length > 0);
+  if (!ativos.length) { el.innerHTML = ""; return; }
+  const gb = (mb) => mb >= 1024 ? (mb / 1024).toFixed(1).replace(".", ",") + " GB" : mb + " MB";
+  const dur = (s) => s >= 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s} s`;
+  el.innerHTML = ativos.map((a) =>
+    `<span title="${a.papel}"><span class="uso-nome">${escapeHtml(a.nome)}</span> ${gb(a.rss_mb)} · ${dur(a.tempo_s)}</span>`
+  ).join('<span class="text-body-tertiary"> | </span>') + '<span class="uso-sep"></span>';
+}
+
+let healthTimer = null;
+
 async function loadHealth() {
   const st = document.getElementById("api-status");
   const tools = document.getElementById("tools");
@@ -809,12 +826,18 @@ async function loadHealth() {
       return `<span class="${cls}" title="${escapeHtml(tip)}">${escapeHtml(name)}</span>`;
     }).join(' <span class="text-body-tertiary">·</span> ');
     renderRam(d.memoria);
+    renderEmUso(d.em_uso);
   } catch {
     st.className = "amb-status tom-ruim";
     st.textContent = "offline";
     tools.innerHTML = "";
     renderRam(null);
+    renderEmUso(null);
   }
+  // com algo rodando a barra atualiza a cada 3 s; parada, a cada 10 s
+  clearTimeout(healthTimer);
+  const ativo = document.getElementById("caixa-uso").classList.contains("ativa");
+  healthTimer = setTimeout(loadHealth, ativo ? 3000 : 10000);
 }
 
 // ---------------- configuração do LLM (pop-up) ----------------
@@ -1173,8 +1196,7 @@ function init() {
     if (e.target.id === "settings-overlay") closeSettings();   // clicar fora fecha
   });
 
-  loadHealth();
-  setInterval(loadHealth, 10000);   // RAM e ferramentas ao vivo, sem botão
+  loadHealth();                      // reagenda a si mesma (3 s rodando, 10 s parada)
   loadHistory();
   loadSolvers();       // só oferece solvers compilados neste build do ESBMC
   updateRepairBadge();
