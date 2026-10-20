@@ -250,12 +250,9 @@ function renderResults(rec) {
   const result = rec.result || {};
   currentRunId = rec.id || currentRunId;
 
-  // cabeçalho: qual run está sendo exibida (rótulo da pasta, não o caminho do servidor)
-  const folder = rec.folder_label || "";
-  const cancMark = rec.status === "cancelled"
-    ? ' · <span class="text-danger fw-semibold">cancelada (parcial)</span>' : "";
-  document.getElementById("results-header").innerHTML =
-    `run <code>${rec.id || "?"}</code> · ${folder} · ${fmtWhen(rec.created_at)}${cancMark}`;
+  // A identificação da run fica no Histórico (linha marcada); aqui só o aviso
+  // de run cancelada, porque os números abaixo são parciais.
+  document.getElementById("results-header").classList.toggle("d-none", rec.status !== "cancelled");
 
   const s = result.summary || {};
   const m = result.metrics || {};
