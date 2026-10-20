@@ -89,6 +89,19 @@ body {
   font-size: .82rem;
 }
 
+/* Ambiente na barra: ponto colorido antes do estado do servidor */
+.amb-status::before {
+  content: "";
+  display: inline-block;
+  width: .5rem;
+  height: .5rem;
+  margin-right: .35rem;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: .05rem;
+}
+@media (max-width: 767.98px) { .ambiente { order: 3; width: 100%; } }
+
 /* ---------- botões ---------- */
 .btn-primary {
   --bs-btn-bg: var(--marca);

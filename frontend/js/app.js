@@ -774,42 +774,49 @@ function pickFolder() {
 // LLM de reparo configurada no SERVIDOR (.env). Preenchido por loadHealth().
 let serverLLM = { configured: false, model: null };
 
+// Barra superior: servidor no ar, cada ferramenta em verde (pronta) ou vermelho
+// (ausente; a ausência silenciosa foi o que mascarou o MathSAT) e a RAM da
+// máquina, que sobe rápido quando o ESBMC prova código com threads.
+function renderRam(m) {
+  const el = document.getElementById("ram");
+  if (!m) { el.innerHTML = ""; return; }
+  const gb = (mb) => (mb / 1024).toFixed(1).replace(".", ",");
+  const cls = { ok: "tom-bom", atencao: "tom-aviso", alerta: "tom-ruim" }[m.nivel] || "";
+  const aviso = m.nivel === "alerta" ? " · memória alta" : "";
+  el.className = cls;
+  el.title = `${m.pct}% da RAM em uso na máquina`;
+  el.textContent = `RAM ${gb(m.usado_mb)} / ${gb(m.total_mb)} GB${aviso}`;
+}
+
 async function loadHealth() {
   const st = document.getElementById("api-status");
   const tools = document.getElementById("tools");
   try {
     const d = await api.health();
     // Sem `tools` = respondeu ao anônimo (sessão expirada): o servidor está de
-    // pé, mas nós é que não estamos mais logados. Dizer isso, em vez de mostrar
-    // a linha vazia — que leria como "nenhuma ferramenta instalada".
+    // pé, mas nós é que não estamos mais logados.
     if (!d.tools) {
-      st.className = "badge selo selo-aviso";
+      st.className = "amb-status tom-aviso";
       st.textContent = "sessão expirada";
-      tools.innerHTML = '<a href="/login.html" class="small">entrar de novo</a>';
+      tools.innerHTML = '<a href="/login.html">entrar de novo</a>';
+      renderRam(null);
       return;
     }
     serverLLM = d.llm || { configured: false, model: null };
     updateRepairBadge();
-    st.className = "badge selo selo-bom";
-    // sem o número de versão: é informação de infraestrutura e não precisa ficar
-    // exposta na tela (o sistema está publicado na internet, não mais só intranet)
+    st.className = "amb-status tom-bom";
     st.textContent = "online";
-    // uma linha só: nomes separados por " | ". O que faltar fica riscado e em
-    // vermelho — some da linha nenhum, pra ausência não passar despercebida.
-    // mesmo verde do selo "online", em semibold: a linha inteira lê como um só
-    // grupo de status. O que faltar fica riscado e vermelho — ausência silenciosa
-    // foi o que mascarou o MathSAT ausente.
     tools.innerHTML = Object.entries(d.tools).map(([name, info]) => {
-      const cls = info.available
-        ? "text-body-secondary"
-        : "tom-ruim text-decoration-line-through";
-      const tip = info.path || (info.available ? "" : "indisponível");
+      const cls = info.available ? "tom-bom" : "tom-ruim text-decoration-line-through";
+      const tip = info.available ? (info.path || "") : "indisponível";
       return `<span class="${cls}" title="${escapeHtml(tip)}">${escapeHtml(name)}</span>`;
     }).join(' <span class="text-body-tertiary">·</span> ');
+    renderRam(d.memoria);
   } catch {
-    st.className = "badge selo selo-ruim";
+    st.className = "amb-status tom-ruim";
     st.textContent = "offline";
     tools.innerHTML = "";
+    renderRam(null);
   }
 }
 
@@ -1100,7 +1107,6 @@ function init() {
   document.getElementById("run-form").addEventListener("submit", launchRun);
   document.getElementById("btn-refresh-hist").addEventListener("click", loadHistory);
   document.getElementById("btn-cancel-run").addEventListener("click", cancelCurrentRun);
-  document.getElementById("btn-refresh-health").addEventListener("click", loadHealth);
   document.getElementById("btn-upload").addEventListener("click", () =>
     document.getElementById("folder-picker").click());
   document.getElementById("folder-picker").addEventListener("change", uploadPickedFolder);
@@ -1171,6 +1177,7 @@ function init() {
   });
 
   loadHealth();
+  setInterval(loadHealth, 10000);   // RAM e ferramentas ao vivo, sem botão
   loadHistory();
   loadSolvers();       // só oferece solvers compilados neste build do ESBMC
   updateRepairBadge();

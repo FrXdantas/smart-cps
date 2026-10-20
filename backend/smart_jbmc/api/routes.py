@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from .. import __version__
 from ..auth.deps import optional_user
 from ..core.config import tools_status
+from ..core.process import memoria_maquina
 from ..core.repair import llm as _llm
 
 router = APIRouter()
@@ -30,6 +31,15 @@ class LLMInfo(BaseModel):
     model: str | None = None
 
 
+class MemInfo(BaseModel):
+    """RAM da máquina para o aviso da barra superior (ver core.process)."""
+
+    total_mb: int
+    usado_mb: int
+    pct: int
+    nivel: str                      # ok | atencao | alerta
+
+
 class HealthResponse(BaseModel):
     """Só `status` é público. O resto (versão, caminhos dos binários, LLM do
     servidor) sai apenas para chamador autenticado — ver `health()`."""
@@ -38,6 +48,7 @@ class HealthResponse(BaseModel):
     version: str | None = None
     tools: dict[str, ToolInfo] | None = None
     llm: LLMInfo | None = None
+    memoria: MemInfo | None = None
 
 
 @router.get("/health", response_model=HealthResponse, tags=["system"])
@@ -63,4 +74,5 @@ def health(user: dict[str, Any] | None = Depends(optional_user)) -> HealthRespon
             configured=tem_chave,
             model=_llm.default_model() if tem_chave else None,
         ),
+        memoria=memoria_maquina(),
     )

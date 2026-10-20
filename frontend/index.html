@@ -6,7 +6,7 @@
   <title>SMART ESBMC / JBMC rv. 2.0-cps: Verificação Formal</title>
   <script src="js/tema.js?v=1"></script>
   <link href="vendor/bootstrap.min.css" rel="stylesheet">
-  <link href="css/styles.css?v=19" rel="stylesheet">
+  <link href="css/styles.css?v=20" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar app-bar py-2">
@@ -14,6 +14,12 @@
       <div class="d-flex flex-column">
         <span class="marca">SMART ESBMC / JBMC<span class="versao">rv. 2.0-cps</span></span>
         <span class="subtitulo d-none d-md-inline">Verificação formal, classificação CWE/CERT-C e reparo guiado por contraexemplo</span>
+      </div>
+      <!-- Ambiente: servidor, ferramentas (verde = pronta, vermelho = ausente) e RAM -->
+      <div class="ambiente d-flex flex-wrap align-items-center gap-3 small">
+        <span id="api-status" class="amb-status">…</span>
+        <span id="tools"></span>
+        <span id="ram"></span>
       </div>
       <div class="d-flex align-items-center gap-2">
         <span id="user-label" class="small text-body-secondary"></span>
@@ -39,18 +45,6 @@
   </nav>
 
   <main class="container py-4">
-
-    <!-- ===== Ambiente (no topo): tudo numa linha, separado por | ===== -->
-    <div class="card shadow-sm mb-4">
-      <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
-        <span class="fw-semibold small">Ambiente</span>
-        <span id="api-status" class="badge text-bg-secondary">…</span>
-        <span id="tools" class="small text-muted"></span>
-        <button id="btn-refresh-health" class="btn btn-sm btn-discreto ms-auto">
-          Atualizar
-        </button>
-      </div>
-    </div>
 
     <!-- ===== Lançar verificação ===== -->
     <div class="card shadow-sm mb-4">
@@ -448,6 +442,6 @@
   <script src="vendor/bootstrap.bundle.min.js"></script>
   <script src="js/api.js?v=12"></script>
   <script src="js/auth.js?v=5"></script>
-  <script src="js/app.js?v=20"></script>
+  <script src="js/app.js?v=21"></script>
 </body>
 </html>

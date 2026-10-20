@@ -34,6 +34,7 @@ def test_health_anonimo_so_prova_de_vida():
     assert body["version"] is None
     assert body["tools"] is None
     assert body["llm"] is None
+    assert body["memoria"] is None                      # nem a RAM da máquina
     assert "/usr/" not in res.text
 
 
@@ -48,3 +49,25 @@ def test_docs_e_openapi_exigem_login():
     r = client.get("/api/openapi.json")
     assert r.status_code == 401
     assert "0.1.0" not in r.text
+
+
+def test_health_logado_traz_memoria_da_maquina():
+    mem = client.get("/api/health").json()["memoria"]
+    assert mem["total_mb"] > 0 and 0 <= mem["usado_mb"] <= mem["total_mb"]
+    assert mem["nivel"] in ("ok", "atencao", "alerta")
+
+
+def test_memoria_maquina_niveis(tmp_path):
+    from smart_jbmc.core.process import memoria_maquina
+
+    def com(disponivel_kb):
+        f = tmp_path / "meminfo"
+        f.write_text(f"MemTotal: 1000000 kB\nMemFree: 1000 kB\nMemAvailable: {disponivel_kb} kB\n")
+        return memoria_maquina(str(f))
+
+    assert com(800000)["nivel"] == "ok"          # 20% em uso
+    assert com(250000)["nivel"] == "atencao"     # 75%
+    assert com(100000)["nivel"] == "alerta"      # 90%
+    # MemAvailable conta o cache que o kernel devolve; MemFree sozinho não
+    assert com(800000)["pct"] == 20
+    assert memoria_maquina(str(tmp_path / "nao_existe")) is None

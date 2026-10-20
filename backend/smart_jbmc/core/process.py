@@ -37,6 +37,35 @@ def limite_memoria_mb(jobs: int = 1) -> int:
     return max(MIN_MEM_POR_PROCESSO_MB, total // max(1, jobs))
 
 
+# Faixas do aviso de memória na barra superior (% de RAM em uso na máquina).
+MEM_ATENCAO_PCT = 70
+MEM_ALERTA_PCT = 85
+
+
+def memoria_maquina(meminfo: str = "/proc/meminfo") -> dict | None:
+    """RAM da máquina: total, em uso e o nível do aviso. None fora do Linux.
+
+    "Em uso" é total menos MemAvailable, que já desconta o cache que o kernel
+    devolve sob pressão; MemFree sozinho faria a máquina parecer sempre cheia.
+    No Docker, /proc/meminfo mostra a memória do computador, não a do contêiner,
+    que é o que interessa: um ESBMC pesado disputa a RAM com o resto da máquina.
+    """
+    try:
+        campos = {}
+        with open(meminfo, encoding="ascii") as f:
+            for linha in f:
+                nome, valor = linha.split(":", 1)
+                campos[nome] = int(valor.split()[0])      # kB
+        total = campos["MemTotal"] // 1024
+        livre = campos.get("MemAvailable", campos.get("MemFree", 0)) // 1024
+    except (OSError, KeyError, ValueError):
+        return None
+    usado = max(0, total - livre)
+    pct = round(100 * usado / total) if total else 0
+    nivel = "alerta" if pct >= MEM_ALERTA_PCT else "atencao" if pct >= MEM_ATENCAO_PCT else "ok"
+    return {"total_mb": total, "usado_mb": usado, "pct": pct, "nivel": nivel}
+
+
 @dataclass
 class ToolResult:
     """Resultado de um subprocesso (verificador/compilador)."""
