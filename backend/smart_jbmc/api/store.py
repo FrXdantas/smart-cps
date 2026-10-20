@@ -114,11 +114,12 @@ def get_run(run_id: str, owner_id: int | None = None) -> dict | None:
     return rec
 
 
-def _modelo_do_reparo(run_id: str) -> str | None:
+def _modelo_do_reparo(run_id: str) -> dict | None:
     """Modelo de LLM que de fato respondeu no reparo desta run (o histórico mostra).
 
     Lido do `repair.json`: o nome devolvido pela API em cada tentativa vale mais
-    que o pedido, que pode vir vazio (padrão do servidor). Sem reparo, None.
+    que o pedido, que pode vir vazio (padrão do servidor). `local` diz se rodou
+    na própria máquina (Ollama) ou num provedor pela internet. Sem reparo, None.
     """
     p = RUNS_DIR / run_id / "repair.json"
     if not p.is_file():
@@ -129,12 +130,15 @@ def _modelo_do_reparo(run_id: str) -> str | None:
         return None
     opts = rep.get("options") or {}
     if opts.get("dry_run"):
-        return "dry-run"
+        return {"model": "dry-run", "local": True}
+    base = (opts.get("base_url") or "").lower()
+    local = opts.get("provider") == "local" or any(
+        h in base for h in ("localhost", "127.0.0.1", "host.docker.internal", ":11434"))
     for t in (rep.get("result") or {}).get("targets") or []:
         for a in t.get("attempts") or []:
             if a.get("model") and a["model"] != "?":
-                return a["model"]
-    return opts.get("model")
+                return {"model": a["model"], "local": local}
+    return {"model": opts["model"], "local": local} if opts.get("model") else None
 
 
 def _brief(rec: dict) -> dict:

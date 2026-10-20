@@ -17,7 +17,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-IMAGEM="${SMARTCPS_IMAGEM:-smartcps:1.11-cps}"
+IMAGEM="${SMARTCPS_IMAGEM:-smartcps:2.0-cps}"
 NOME="smartcps"
 VOLUME="smartcps-dados"
 PORTA="${PORTA:-8100}"

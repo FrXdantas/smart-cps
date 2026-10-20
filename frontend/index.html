@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SMART ESBMC / JBMC rv. 1.11-cps: Verificação Formal</title>
+  <title>SMART ESBMC / JBMC rv. 2.0-cps: Verificação Formal</title>
   <script src="js/tema.js?v=1"></script>
   <link href="vendor/bootstrap.min.css" rel="stylesheet">
-  <link href="css/styles.css?v=17" rel="stylesheet">
+  <link href="css/styles.css?v=19" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar app-bar py-2">
     <div class="container flex-wrap gap-2">
       <div class="d-flex flex-column">
-        <span class="marca">SMART ESBMC / JBMC<span class="versao">rv. 1.11-cps</span></span>
+        <span class="marca">SMART ESBMC / JBMC<span class="versao">rv. 2.0-cps</span></span>
         <span class="subtitulo d-none d-md-inline">Verificação formal, classificação CWE/CERT-C e reparo guiado por contraexemplo</span>
       </div>
       <div class="d-flex align-items-center gap-2">
@@ -22,8 +22,6 @@
                   data-bs-toggle="dropdown" aria-expanded="false">Menu</button>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="btn-menu">
             <li><h6 class="dropdown-header">Verificação</h6></li>
-            <li><button class="dropdown-item" type="button" id="btn-upload">Enviar pasta do computador</button></li>
-            <li><button class="dropdown-item" type="button" id="btn-browse">Procurar pasta no servidor</button></li>
             <li><button class="dropdown-item" type="button" id="btn-adv">Opções de projeto</button></li>
             <li><hr class="dropdown-divider"></li>
             <li><h6 class="dropdown-header">Reparo</h6></li>
@@ -65,8 +63,14 @@
           <!-- 1) Pasta do projeto -->
           <div class="col-12">
             <label class="form-label small fw-semibold">Pasta do projeto/benchmark</label>
-            <input type="text" class="form-control" id="f-folder" required
-                   placeholder="/caminho/para/seu/projeto (ou Menu > Enviar pasta do computador)">
+            <div class="input-group pasta-grupo">
+              <input type="text" class="form-control" id="f-folder" required
+                     aria-label="Pasta do projeto">
+              <button class="btn btn-outline-primary" type="button" id="btn-upload"
+                      title="Enviar uma pasta do seu computador para o servidor">
+                Enviar pasta
+              </button>
+            </div>
             <!-- input invisível usado pelo botão "Enviar pasta" -->
             <input type="file" id="folder-picker" webkitdirectory directory multiple class="d-none">
 
@@ -162,9 +166,9 @@
           </div>
 
           <!-- 4) Opções de projeto: ficam num pop-up, ver #adv-overlay -->
-          <div class="col-12 d-flex flex-wrap align-items-center gap-2">
+          <div class="col-12 d-flex flex-wrap align-items-center gap-2 d-none" id="adv-linha">
             <span class="small text-body-secondary">Opções de projeto:</span>
-            <a href="#" class="small" id="adv-resumo">nenhuma definida</a>
+            <a href="#" class="small" id="adv-resumo"></a>
           </div>
 
           <!-- 5) Ação -->
@@ -199,36 +203,28 @@
 
     <!-- ===== Resultados ===== -->
     <section id="results" class="d-none">
-      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-        <h2 class="h5 text-primary mb-0">Resultados</h2>
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-body-tertiary text-body border" id="results-header"></span>
-          <button class="btn btn-sm btn-outline-primary" id="btn-export-sarif"
-                  title="Exportar achados em SARIF 2.1.0 (VS Code / GitHub / CI)">
-            SARIF
-          </button>
-        </div>
-      </div>
-
-      <div class="resumo mb-3" id="summary-cards"></div>
-      <div id="results-warnings" class="alert alert-warning py-2 px-3 small d-none"></div>
-
-      <div class="row g-3">
-        <div class="col-lg-4">
-          <div class="card shadow-sm h-100">
-            <div class="card-header titulo">
-              Distribuição CWE
-            </div>
-            <div class="card-body" id="cwe-dist"></div>
+      <!-- Mesmo molde do quadro de reparo: um cartão só, com as partes soltas dentro -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span class="fw-semibold">Resultados</span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-body-tertiary text-body border fw-normal" id="results-header"></span>
+            <button class="btn btn-sm btn-outline-primary" id="btn-export-sarif"
+                    title="Exportar achados em SARIF 2.1.0 (VS Code / GitHub / CI)">
+              SARIF
+            </button>
           </div>
         </div>
-        <div class="col-lg-8">
-          <div class="card shadow-sm h-100">
-            <div class="card-header titulo">
-              Alvos
-              <span class="dica">(clique para ver o contraexemplo)</span>
+        <div class="card-body">
+          <div class="resumo mb-3" id="summary-cards"></div>
+          <div id="results-warnings" class="alert alert-warning py-2 px-3 small d-none"></div>
+
+          <div class="row g-4">
+            <div class="col-lg-4">
+              <div class="small text-body-secondary mb-2">Distribuição CWE</div>
+              <div id="cwe-dist"></div>
             </div>
-            <div class="card-body p-0">
+            <div class="col-lg-8">
               <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0 align-middle">
                   <thead>
@@ -237,19 +233,19 @@
                   <tbody id="targets-body"></tbody>
                 </table>
               </div>
-              <div class="card-footer" id="targets-pager"></div>
+              <div class="mt-2 d-none" id="targets-pager"></div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="card shadow-sm mt-3 d-none" id="detail-card">
-        <div class="card-header titulo">
-          Detalhe: <span id="detail-title"></span>
-        </div>
-        <div class="card-body">
-          <div id="detail-meta" class="mb-2 small"></div>
-          <pre class="explanation" id="detail-explanation"></pre>
+          <div class="card mt-3 d-none" id="detail-card">
+            <div class="card-header titulo">
+              Detalhe: <span id="detail-title"></span>
+            </div>
+            <div class="card-body">
+              <div id="detail-meta" class="mb-2 small"></div>
+              <pre class="explanation" id="detail-explanation"></pre>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -293,8 +289,7 @@
             </div>
           </div>
           <div id="repair-results" class="d-none">
-            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-              <span class="text-muted small">Clique num alvo para ver a trilha e o código corrigido.</span>
+            <div class="d-flex justify-content-end align-items-center mb-2 flex-wrap gap-2">
               <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-sm btn-outline-success" id="btn-export-repair">
                   Exportar relatório (.md)
@@ -336,10 +331,7 @@
               </div>
             </div>
           </div>
-          <p class="text-muted small mb-0" id="repair-hint">
-            Repara os alvos com BUG desta run (LLM propõe → o verificador valida → realimenta o
-            contraexemplo até provar a correção). Em <strong>dry-run</strong> demonstra o loop sem usar a API.
-          </p>
+          <p class="small mb-0 d-none" id="repair-hint"></p>
         </div>
       </div>
     </section>
@@ -347,7 +339,7 @@
     <!-- ===== Histórico ===== -->
     <div class="card my-4">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="fw-semibold">Histórico
+        <span>Histórico
           <span class="dica" id="hist-dica">(clique numa run para abrir o relatório)</span></span>
         <div class="d-flex gap-2">
           <button id="btn-refresh-hist" class="btn btn-sm btn-discreto" title="Atualizar">
@@ -460,6 +452,6 @@
   <script src="vendor/bootstrap.bundle.min.js"></script>
   <script src="js/api.js?v=12"></script>
   <script src="js/auth.js?v=5"></script>
-  <script src="js/app.js?v=15"></script>
+  <script src="js/app.js?v=19"></script>
 </body>
 </html>

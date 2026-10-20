@@ -1,11 +1,13 @@
 // SMART ESBMC/JBMC — SPA: lançar verificação, barra de progresso e resultados.
 
+// Selos de status em tom sóbrio: contorno fino e texto escuro, sem fundo cheio.
+// A cor só separa bom / ruim / atenção / neutro (ver .selo no CSS).
 const STATUS_BADGE = {
-  BUG: "text-bg-danger", SAFE: "text-bg-success",
-  UNKNOWN: "text-bg-warning", TIMEOUT: "text-bg-warning",
-  ERROR: "text-bg-secondary", COMPILE_FAIL: "text-bg-dark",
+  BUG: "selo selo-ruim", SAFE: "selo selo-bom",
+  UNKNOWN: "selo selo-aviso", TIMEOUT: "selo selo-aviso",
+  ERROR: "selo selo-neutro", COMPILE_FAIL: "selo selo-neutro",
   // classe de biblioteca (sem `main`): alvo inaplicável, não erro
-  NO_ENTRY_POINT: "bg-body-tertiary border text-secondary",
+  NO_ENTRY_POINT: "selo selo-neutro",
 };
 const LANG_BY_EXT = { java: "java", kt: "kotlin", c: "c" };
 function langOf(t) {
@@ -13,12 +15,12 @@ function langOf(t) {
   return LANG_BY_EXT[e] || t.kind || "—";
 }
 const VERDICT_BADGE = {
-  FIX_OK: "text-bg-success", STILL_VULNERABLE: "text-bg-warning",
-  DIFFERENT_BUG: "text-bg-info", TIMEOUT: "text-bg-secondary", ERROR: "text-bg-dark",
-  PROVIDER_ERROR: "bg-body-tertiary border text-warning",
+  FIX_OK: "selo selo-bom", STILL_VULNERABLE: "selo selo-aviso",
+  DIFFERENT_BUG: "selo selo-aviso", TIMEOUT: "selo selo-neutro", ERROR: "selo selo-neutro",
+  PROVIDER_ERROR: "selo selo-neutro",
   // patch recusado pelas guardas ANTES de chegar ao verificador: reimplementou
   // classe que já existe em outro arquivo, ou apagou asserção p/ a violação sumir
-  INVALID_PATCH: "bg-body-tertiary border text-danger",
+  INVALID_PATCH: "selo selo-ruim",
 };
 
 function escapeHtml(s) {
@@ -37,33 +39,29 @@ function downloadText(filename, text, mime) {
 }
 
 // ---------------- paginação (client-side; renderiza só a página atual) ----------------
-let curTargets = [], tgtPage = 1, tgtSize = 50;
-let curRepair = [], repPage = 1, repSize = 50;
+let curTargets = [], tgtPage = 1;
+const tgtSize = 50;
+let curRepair = [], repPage = 1;
+const repSize = 50;
 
-function buildPager(containerId, total, page, size, onGoto, onSize) {
+// Só aparece quando há mais de uma página: com uma página, contador e seletor
+// de tamanho eram ruído. O tamanho fica fixo em 50 por página.
+function buildPager(containerId, total, page, size, onGoto) {
   const c = document.getElementById(containerId);
   if (!c) return;
-  if (total <= 0) { c.innerHTML = ""; return; }
   const pages = Math.max(1, Math.ceil(total / size));
-  const start = (page - 1) * size + 1;
-  const end = Math.min(page * size, total);
+  c.classList.toggle("d-none", pages <= 1);
+  if (pages <= 1) { c.innerHTML = ""; return; }
   c.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 small">
-      <span class="text-muted">${start}–${end} de ${total}</span>
-      <div class="d-flex align-items-center gap-2">
-        <select class="form-select form-select-sm w-auto pager-size">
-          ${[25, 50, 100, 250].map(n => `<option value="${n}"${n === size ? " selected" : ""}>${n}/pág</option>`).join("")}
-        </select>
-        <div class="btn-group btn-group-sm">
-          <button type="button" class="btn btn-outline-secondary pager-prev"${page <= 1 ? " disabled" : ""}>Anterior</button>
-          <button type="button" class="btn btn-outline-secondary" disabled>${page}/${pages}</button>
-          <button type="button" class="btn btn-outline-secondary pager-next"${page >= pages ? " disabled" : ""}>Próximo</button>
-        </div>
+    <div class="d-flex justify-content-end small">
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary pager-prev"${page <= 1 ? " disabled" : ""}>Anterior</button>
+        <button type="button" class="btn btn-outline-secondary" disabled>${page}/${pages}</button>
+        <button type="button" class="btn btn-outline-secondary pager-next"${page >= pages ? " disabled" : ""}>Próximo</button>
       </div>
     </div>`;
   c.querySelector(".pager-prev").addEventListener("click", () => onGoto(page - 1));
   c.querySelector(".pager-next").addEventListener("click", () => onGoto(page + 1));
-  c.querySelector(".pager-size").addEventListener("change", e => onSize(+e.target.value));
 }
 const PHASE_LABEL = {
   queued: "Na fila…", scanning: "Escaneando arquivos…",
@@ -231,6 +229,18 @@ function summaryCard(label, value) {
   return `<div class="resumo-item"><span class="valor">${value}</span><span class="rotulo">${label}</span></div>`;
 }
 
+// "20/10/2026 - 12:13"
+function fmtDataHora(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} - ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+const ICONE_LIXEIRA = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+  stroke-width="1.3" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.6 6.5v5M9.4 6.5v5"/></svg>`;
+
 function fmtWhen(iso) {
   if (!iso) return "";
   try { return new Date(iso).toLocaleString("pt-BR"); } catch { return iso; }
@@ -267,7 +277,7 @@ function renderResults(rec) {
     wEl.classList.remove("d-none");
     wEl.innerHTML =
       `<strong>${warns.length} unidade(s) não compilaram</strong> ` +
-      `e aparecem como <span class="badge text-bg-dark">COMPILE_FAIL</span> na tabela (clique p/ ver o erro). ` +
+      `e aparecem como <span class="badge selo selo-neutro">COMPILE_FAIL</span> na tabela (clique p/ ver o erro). ` +
       `<details class="mt-1"><summary>ver lista</summary>` +
       `<div class="mt-1" style="max-height:160px;overflow:auto;font-family:monospace">${warns.map(escapeHtml).join("<br>")}</div></details>`;
   } else {
@@ -297,8 +307,26 @@ function renderResults(rec) {
   showRepairCard((s.BUG || 0) > 0);
 }
 
+// Clicar de novo na mesma linha fecha o detalhe e volta a tela para a linha.
+// `chave` identifica o alvo aberto; a linha aberta fica marcada.
+function alternarDetalhe(cardId, chave, tr, mostrar) {
+  const card = document.getElementById(cardId);
+  const tabela = tr.closest("tbody");
+  const aberto = !card.classList.contains("d-none") && card.dataset.alvo === chave;
+  tabela.querySelectorAll("tr.linha-aberta").forEach((l) => l.classList.remove("linha-aberta"));
+  if (aberto) {
+    card.classList.add("d-none");
+    delete card.dataset.alvo;
+    tr.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  mostrar();
+  card.dataset.alvo = chave;
+  tr.classList.add("linha-aberta");
+}
+
 function targetRow(t) {
-  const badge = STATUS_BADGE[t.status] || "bg-body-tertiary text-body";
+  const badge = STATUS_BADGE[t.status] || "selo selo-neutro";
   const tr = document.createElement("tr");
   tr.className = "target-row";
   tr.innerHTML = `
@@ -308,7 +336,8 @@ function targetRow(t) {
     <td class="small">${t.bug || "—"}</td>
     <td class="small">${t.cwe_id || "—"}</td>
     <td class="small">${t.cert_priority ? "P" + t.cert_priority + " " + (t.cert_level || "") : "—"}</td>`;
-  tr.addEventListener("click", () => showDetail(t));
+  tr.addEventListener("click", () =>
+    alternarDetalhe("detail-card", t.source || t.target, tr, () => showDetail(t)));
   return tr;
 }
 
@@ -321,8 +350,7 @@ function renderTargetsTable() {
   tb.innerHTML = "";
   curTargets.slice(start, start + tgtSize).forEach(t => tb.appendChild(targetRow(t)));
   buildPager("targets-pager", total, tgtPage, tgtSize,
-    p => { tgtPage = p; renderTargetsTable(); },
-    s => { tgtSize = s; tgtPage = 1; renderTargetsTable(); });
+    p => { tgtPage = p; renderTargetsTable(); });
 }
 
 // ---------------- reparo guiado por LLM ----------------
@@ -331,9 +359,6 @@ let repairCancelling = false;    // true após clicar Parar — o poll mostra "P
 let lastRepairResult = null;     // p/ detalhe na tela + export do relatório
 let lastRepairRunId = null;
 
-const REPAIR_HINT_DEFAULT =
-  'Repara os alvos com BUG desta run (LLM propõe → o verificador valida → realimenta o ' +
-  'contraexemplo até provar a correção). Em <strong>dry-run</strong> demonstra o loop sem usar a API.';
 
 function showRepairCard(hasBugs) {
   const card = document.getElementById("repair-card");
@@ -341,9 +366,8 @@ function showRepairCard(hasBugs) {
   if (!hasBugs) return;
   document.getElementById("repair-progress").classList.add("d-none");
   document.getElementById("repair-results").classList.add("d-none");
-  const hint = document.getElementById("repair-hint");
-  hint.classList.remove("d-none");
-  hint.innerHTML = REPAIR_HINT_DEFAULT;
+  // a dica só aparece quando há o que avisar (ex.: falta configurar a LLM)
+  document.getElementById("repair-hint").classList.add("d-none");
   const bar = document.getElementById("repair-bar");
   bar.classList.replace("bg-danger", "bg-primary");
   document.getElementById("btn-repair").disabled = false;
@@ -466,12 +490,12 @@ function renderRepair(result) {
 }
 
 const REPAIR_STATUS_BADGE = {
-  REPAIRED: "text-bg-success", NOT_REPAIRED: "text-bg-warning",
-  ERROR: "text-bg-secondary", PROVIDER_ERROR: "bg-body-tertiary border text-warning",
+  REPAIRED: "selo selo-bom", NOT_REPAIRED: "selo selo-aviso",
+  ERROR: "selo selo-neutro", PROVIDER_ERROR: "selo selo-neutro",
 };
 
 function repairRow(t) {
-  const badge = REPAIR_STATUS_BADGE[t.status] || "text-bg-warning";
+  const badge = REPAIR_STATUS_BADGE[t.status] || "selo selo-aviso";
   // rótulo amigável: deixa claro que rate-limit não é falha de reparo
   const label = t.status === "PROVIDER_ERROR" ? "PROVIDER_ERROR (cota/429)" : t.status;
   const tr = document.createElement("tr");
@@ -481,7 +505,8 @@ function repairRow(t) {
     <td class="small">${t.original_bug}</td>
     <td><span class="badge ${badge}">${label}</span></td>
     <td class="small">${t.iterations}</td>`;
-  tr.addEventListener("click", () => showRepairDetail(t));
+  tr.addEventListener("click", () =>
+    alternarDetalhe("repair-detail", t.source || t.target, tr, () => showRepairDetail(t)));
   return tr;
 }
 
@@ -494,20 +519,19 @@ function renderRepairTable() {
   tb.innerHTML = "";
   curRepair.slice(start, start + repSize).forEach(t => tb.appendChild(repairRow(t)));
   buildPager("repair-pager", total, repPage, repSize,
-    p => { repPage = p; renderRepairTable(); },
-    s => { repSize = s; repPage = 1; renderRepairTable(); });
+    p => { repPage = p; renderRepairTable(); });
 }
 
 // detalhe de UM alvo reparado: trilha de iterações + diff lado a lado
 function showRepairDetail(t) {
-  document.getElementById("repair-detail-title").textContent = `${t.target}: ${t.status}`;
+  document.getElementById("repair-detail-title").textContent = t.target;
   const trail = (t.attempts || []).map(a => {
     const spd = a.tok_s ? ` · ${a.tok_s} tok/s` : "";
     const tip = `modelo: ${a.model}` + (a.tokens ? ` · ${a.tokens} tokens em ${(a.ms / 1000).toFixed(1)}s` : "");
-    return `<span class="badge ${VERDICT_BADGE[a.verdict] || "bg-body-tertiary text-body"} me-1" title="${tip}">it${a.iteration}: ${a.verdict}${spd}</span>`;
+    return `<span class="badge ${VERDICT_BADGE[a.verdict] || "selo selo-neutro"} me-1" title="${tip}">it${a.iteration}: ${a.verdict}${spd}</span>`;
   }).join("");
   document.getElementById("repair-detail-trail").innerHTML =
-    `<div class="small fw-semibold mb-1">Trilha de iterações <span class="text-muted fw-normal">(oráculo = verificador)</span>:</div>${trail || "—"}`;
+    `<div class="small text-body-secondary mb-1">Tentativas</div>${trail || "—"}`;
   // num projeto multi-arquivo o defeito costuma estar em outro arquivo que não o
   // do ponto de entrada onde o bug foi reportado — deixar isso explícito
   const alvoFonte = (t.source || "").split("/").pop();
@@ -518,17 +542,17 @@ function showRepairDetail(t) {
     : "";
   document.getElementById("repair-detail-path").innerHTML = ondeHtml + (t.fixed_path
     ? `Arquivo corrigido: <code>${escapeHtml(t.fixed_path)}</code>`
-    : `Sem arquivo final corrigido (status ${t.status}).`);
+    : "Não reparado.");
 
   const orig = t.original_code, fixed = t.final_code;
   const codeEl = document.getElementById("repair-detail-code");
   if (!orig && !fixed) {
     codeEl.innerHTML = '<div class="col-12 text-muted small">Código não embutido nesta run (rode um novo reparo para ver o diff lado a lado).</div>';
   } else {
-    const fixedLabel = t.status === "REPAIRED" ? "Corrigido (FIX_OK)" : "Última tentativa (rejeitada)";
+    const fixedLabel = t.status === "REPAIRED" ? "Corrigido" : "Última tentativa";
     codeEl.innerHTML =
-      `<div class="col-md-6"><div class="small fw-semibold mb-1">Original</div><pre class="code-pane">${escapeHtml(orig || "")}</pre></div>` +
-      `<div class="col-md-6"><div class="small fw-semibold mb-1">${fixedLabel}</div><pre class="code-pane ${t.status === "REPAIRED" ? "code-fixed" : ""}">${escapeHtml(fixed || "")}</pre></div>`;
+      `<div class="col-md-6"><div class="small text-body-secondary mb-1">Original</div><pre class="code-pane">${escapeHtml(orig || "")}</pre></div>` +
+      `<div class="col-md-6"><div class="small text-body-secondary mb-1">${fixedLabel}</div><pre class="code-pane ${t.status === "REPAIRED" ? "code-fixed" : ""}">${escapeHtml(fixed || "")}</pre></div>`;
   }
   const card = document.getElementById("repair-detail");
   card.classList.remove("d-none");
@@ -585,7 +609,7 @@ function showDetail(t) {
   document.getElementById("detail-title").textContent = t.target;
   const info = t.cwe_id ? `${t.cwe_id}${t.cwe_name ? " (" + t.cwe_name + ")" : ""}` : "—";
   document.getElementById("detail-meta").innerHTML = `
-    <span class="badge ${STATUS_BADGE[t.status] || "bg-body-tertiary text-body"}">${t.status}</span>
+    <span class="badge ${STATUS_BADGE[t.status] || "selo selo-neutro"}">${t.status}</span>
     <span class="ms-2">Bug: <strong>${t.bug || "—"}</strong></span>
     <span class="ms-2">CWE: ${info}</span>
     <span class="ms-2">CERT: ${t.cert_priority ? "P" + t.cert_priority + " (" + (t.cert_level || "") + ")" : "—"}</span>
@@ -610,26 +634,21 @@ async function loadHistory() {
     const runs = await api.listRuns();
     if (!runs.length) { el.innerHTML = '<li class="list-group-item text-muted small">Nenhuma run ainda.</li>'; return; }
     el.innerHTML = runs.map(r => {
-      const s = r.summary || {};
-      const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
-      const counts = s.total != null
-        ? `${plural(s.total, "alvo", "alvos")} · ${plural(s.BUG || 0, "bug", "bugs")}` : r.status;
-      // o bug é achado pelo ESBMC/JBMC; o modelo só aparece se houve reparo
-      const llm = r.repair_model
-        ? `reparo: ${escapeHtml(r.repair_model)}` : "sem reparo";
-      return `<li class="list-group-item history-item d-flex justify-content-between align-items-center flex-wrap gap-2" data-id="${r.id}">
-        <span class="d-flex flex-column text-truncate hist-principal">
-          <span><span class="hist-data">${fmtWhen(r.created_at)}</span>
-            <span class="ms-2">${escapeHtml(r.folder_label || "")}</span></span>
-          <span class="small text-body-secondary">run <code>${r.id}</code></span>
-        </span>
-        <span class="d-flex align-items-center flex-wrap gap-2">
-          <span class="small text-body-secondary">${llm}</span>
-          <span class="badge text-body-secondary bg-body-tertiary border">${counts}</span>
-          <button type="button" class="btn btn-sm btn-link text-danger p-0 px-1 history-del"
-                  data-id="${r.id}" data-label="${r.folder_label || r.id}"
-                  title="Apagar esta run e a pasta dela no servidor">apagar</button>
-        </span>
+      const rm = r.repair_model;
+      const tipo = rm ? "reparo" : "verificação";
+      const llm = rm
+        ? `${escapeHtml(rm.model)} <span class="text-body-tertiary">(${rm.local ? "local" : "nuvem"})</span>`
+        : '<span class="text-body-tertiary">sem LLM</span>';
+      // a pasta fica no título da linha: o histórico mostra só o que foi pedido
+      return `<li class="list-group-item history-item hist-linha" data-id="${r.id}"
+                  title="${escapeHtml(r.folder_label || "")}">
+        <code class="hist-run">${r.id}</code>
+        <span class="hist-data">${fmtDataHora(r.created_at)}</span>
+        <span class="hist-tipo">${tipo}</span>
+        <span class="hist-llm text-truncate">${llm}</span>
+        <button type="button" class="btn btn-sm btn-link p-0 history-del"
+                data-id="${r.id}" data-label="${escapeHtml(r.folder_label || r.id)}"
+                title="Apagar esta run e a pasta dela no servidor" aria-label="Apagar">${ICONE_LIXEIRA}</button>
       </li>`;
     }).join("");
     el.querySelectorAll(".history-item").forEach(li =>
@@ -764,14 +783,14 @@ async function loadHealth() {
     // pé, mas nós é que não estamos mais logados. Dizer isso, em vez de mostrar
     // a linha vazia — que leria como "nenhuma ferramenta instalada".
     if (!d.tools) {
-      st.className = "badge text-bg-warning";
+      st.className = "badge selo selo-aviso";
       st.textContent = "sessão expirada";
       tools.innerHTML = '<a href="/login.html" class="small">entrar de novo</a>';
       return;
     }
     serverLLM = d.llm || { configured: false, model: null };
     updateRepairBadge();
-    st.className = "badge text-bg-success";
+    st.className = "badge selo selo-bom";
     // sem o número de versão: é informação de infraestrutura e não precisa ficar
     // exposta na tela (o sistema está publicado na internet, não mais só intranet)
     st.textContent = "online";
@@ -782,13 +801,13 @@ async function loadHealth() {
     // foi o que mascarou o MathSAT ausente.
     tools.innerHTML = Object.entries(d.tools).map(([name, info]) => {
       const cls = info.available
-        ? "text-success fw-semibold"
-        : "text-danger fw-semibold text-decoration-line-through";
+        ? "text-body-secondary"
+        : "tom-ruim text-decoration-line-through";
       const tip = info.path || (info.available ? "" : "indisponível");
       return `<span class="${cls}" title="${escapeHtml(tip)}">${escapeHtml(name)}</span>`;
     }).join(' <span class="text-body-tertiary">·</span> ');
   } catch {
-    st.className = "badge text-bg-danger";
+    st.className = "badge selo selo-ruim";
     st.textContent = "offline";
     tools.innerHTML = "";
   }
@@ -952,7 +971,9 @@ function updateAdvSummary() {
   if (n("f-link-unit")) partes.push(`${n("f-link-unit")} arquivo(s) juntos`);
   const fn = document.getElementById("f-function").value.trim();
   if (fn) partes.push(`entrada ${fn}()`);
-  document.getElementById("adv-resumo").textContent = partes.length ? partes.join(", ") : "nenhuma definida";
+  document.getElementById("adv-resumo").textContent = partes.join(", ");
+  // sem nada definido, a linha nem aparece
+  document.getElementById("adv-linha").classList.toggle("d-none", !partes.length);
 }
 
 function closeSettings() {
@@ -1115,7 +1136,6 @@ function init() {
   document.getElementById("btn-refresh-hist").addEventListener("click", loadHistory);
   document.getElementById("btn-cancel-run").addEventListener("click", cancelCurrentRun);
   document.getElementById("btn-refresh-health").addEventListener("click", loadHealth);
-  document.getElementById("btn-browse").addEventListener("click", openBrowser);
   document.getElementById("btn-upload").addEventListener("click", () =>
     document.getElementById("folder-picker").click());
   document.getElementById("folder-picker").addEventListener("change", uploadPickedFolder);

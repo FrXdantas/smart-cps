@@ -16,6 +16,9 @@
   --codigo-ok: #ebf6ee;
   --codigo-ok-borda: #bfdcc8;
   --campo: #ffffff;
+  --tom-bom: #2e6b4f;
+  --tom-ruim: #9a3d3d;
+  --tom-aviso: #876a1e;
 
   --bs-body-bg: var(--fundo);
   --bs-body-color: var(--texto);
@@ -43,6 +46,9 @@
   --codigo-ok: #172a22;
   --codigo-ok-borda: #2d5240;
   --campo: #131719;
+  --tom-bom: #7fb89b;
+  --tom-ruim: #d48c8c;
+  --tom-aviso: #cdb26e;
 
   --bs-body-bg: var(--fundo);
   --bs-body-color: var(--texto);
@@ -186,22 +192,51 @@ body {
   --bs-table-hover-bg: var(--marca-suave);
 }
 .target-row { cursor: pointer; }
+.target-row.linha-aberta > td { background-color: var(--marca-suave); }
 .history-item { cursor: pointer; background: var(--superficie); }
 .history-item:hover { background-color: var(--marca-suave); }
 .history-item.active {
   background-color: var(--marca-suave);
   border-color: var(--borda);
-  border-left: 4px solid var(--marca);
+  border-left: 3px solid var(--marca);
   color: var(--texto);
+}
+/* Linha do histórico: run | data - hora | tipo | LLM | lixeira. Sem negrito. */
+.hist-linha {
+  display: grid;
+  grid-template-columns: 9.5rem 10.5rem 6.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 1rem;
+  font-size: .9rem;
+}
+.hist-linha .hist-run { color: var(--texto-suave); font-size: .85rem; }
+.hist-linha .hist-data { font-variant-numeric: tabular-nums; }
+.hist-linha .hist-tipo, .hist-linha .hist-llm { color: var(--texto-suave); }
+.history-item.active .hist-run { color: var(--texto); }
+@media (max-width: 575.98px) {
+  .hist-linha { grid-template-columns: 1fr auto; row-gap: .15rem; }
+  .hist-linha .hist-run, .hist-linha .hist-data { grid-column: 1; }
+  .hist-linha .hist-tipo, .hist-linha .hist-llm { grid-column: 1; font-size: .82rem; }
+  .hist-linha .history-del { grid-column: 2; grid-row: 1; }
+}
+
+/* Selos de status: contorno e texto no tom, fundo transparente. */
+.badge.selo {
+  background: transparent;
+  border: 1px solid currentColor;
   font-weight: 500;
 }
-.hist-principal { max-width: 60%; }
-.hist-data { font-weight: 600; font-variant-numeric: tabular-nums; }
-@media (max-width: 575.98px) { .hist-principal { max-width: 100%; } }
+.selo-bom { color: var(--tom-bom) !important; }
+.selo-ruim { color: var(--tom-ruim) !important; }
+.selo-aviso { color: var(--tom-aviso) !important; }
+.selo-neutro { color: var(--texto-suave) !important; }
+.tom-ruim { color: var(--tom-ruim); }
+
 .history-del {
-  font-size: .8rem;
-  text-decoration: none;
+  color: var(--texto-suave);
+  line-height: 1;
 }
+.history-del:hover { color: var(--tom-ruim); }
 
 .explanation {
   background: var(--codigo-fundo);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ajuda: SMART ESBMC / JBMC rv. 1.11-cps</title>
+  <title>Ajuda: SMART ESBMC / JBMC rv. 2.0-cps</title>
   <script src="js/tema.js?v=1"></script>
   <link href="vendor/bootstrap.min.css" rel="stylesheet">
   <link href="css/styles.css?v=17" rel="stylesheet">
@@ -37,7 +37,7 @@
 
 <nav class="navbar app-bar py-2">
   <div class="container flex-wrap gap-2">
-    <a class="marca text-decoration-none" href="/">SMART ESBMC / JBMC<span class="versao">rv. 1.11-cps</span></a>
+    <a class="marca text-decoration-none" href="/">SMART ESBMC / JBMC<span class="versao">rv. 2.0-cps</span></a>
     <div class="d-flex flex-wrap align-items-center gap-2">
       <a href="/" class="btn btn-sm btn-outline-primary">Voltar ao painel</a>
       <button type="button" class="btn btn-sm btn-discreto" data-tema-btn>Tema escuro</button>
@@ -90,9 +90,9 @@ int main(void) {
   return soma / N;
 }</pre>
         <ol class="passos">
-          <li>Abra o <strong>Menu</strong>, no canto superior direito, e escolha <strong>Enviar pasta do
-            computador</strong>. Quem administra o servidor também pode usar <strong>Procurar pasta no
-            servidor</strong>, ou digitar o caminho direto no campo da pasta.</li>
+          <li>Em <strong>Nova verificação</strong>, clique em <strong>Enviar pasta</strong>, ao lado do campo da
+            pasta, e escolha a pasta do seu computador. Rodando sem Docker, também dá para digitar o caminho
+            direto no campo.</li>
           <li>Coloque <strong>unwind</strong> em 6 ou mais. O laço dá 6 voltas e o defeito está na última; com
             5, o verificador não chega até ela e o resultado sai SAFE.</li>
           <li>Clique em <strong>Verificar</strong>. O resultado esperado é BUG, CWE-125 (leitura fora do
@@ -180,8 +180,9 @@ int main(void) {
       <section id="projeto">
         <h2>Opções de projeto</h2>
         <p>Ficam em <strong>Menu &gt; Opções de projeto</strong>. Servem para verificar parte de um projeto
-          maior sem compilar o projeto inteiro. Para arquivos simples, deixe tudo vazio. O que estiver
-          definido aparece escrito abaixo dos parâmetros, e clicar nesse texto também abre as opções.</p>
+          maior sem compilar o projeto inteiro. Para arquivos simples, deixe tudo vazio. Quando alguma
+          estiver definida, ela aparece escrita abaixo dos parâmetros, e clicar nesse texto também abre as
+          opções.</p>
         <dl>
           <dt>Pastas de headers (-I)</dt>
           <dd>Pastas onde estão os <code>.h</code> que o arquivo inclui, uma por linha. Sem elas, o
