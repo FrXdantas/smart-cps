@@ -6,7 +6,7 @@
   <title>SMART ESBMC / JBMC rv. 1.11-cps: Verificação Formal</title>
   <script src="js/tema.js?v=1"></script>
   <link href="vendor/bootstrap.min.css" rel="stylesheet">
-  <link href="css/styles.css?v=16" rel="stylesheet">
+  <link href="css/styles.css?v=17" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar app-bar py-2">
@@ -15,19 +15,27 @@
         <span class="marca">SMART ESBMC / JBMC<span class="versao">rv. 1.11-cps</span></span>
         <span class="subtitulo d-none d-md-inline">Verificação formal, classificação CWE/CERT-C e reparo guiado por contraexemplo</span>
       </div>
-      <div class="d-flex flex-wrap align-items-center gap-2">
-        <button id="btn-settings" class="btn btn-sm btn-outline-primary"
-                title="Configurar LLM de reparo (provedor, chave, modelo)">
-          Configurar LLM
-        </button>
-        <a id="link-admin" class="btn btn-sm btn-discreto d-none" href="admin.html"
-           title="Administração (admin)">Admin</a>
-        <a class="btn btn-sm btn-discreto" href="help.html" target="_blank">Ajuda</a>
-        <button type="button" class="btn btn-sm btn-discreto" data-tema-btn>Tema escuro</button>
-        <span id="user-label" class="small text-body-secondary ms-1"></span>
-        <button id="btn-logout" class="btn btn-sm btn-discreto" title="Sair">
-          Sair
-        </button>
+      <div class="d-flex align-items-center gap-2">
+        <span id="user-label" class="small text-body-secondary"></span>
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="btn-menu"
+                  data-bs-toggle="dropdown" aria-expanded="false">Menu</button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="btn-menu">
+            <li><h6 class="dropdown-header">Verificação</h6></li>
+            <li><button class="dropdown-item" type="button" id="btn-upload">Enviar pasta do computador</button></li>
+            <li><button class="dropdown-item" type="button" id="btn-browse">Procurar pasta no servidor</button></li>
+            <li><button class="dropdown-item" type="button" id="btn-adv">Opções de projeto</button></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header">Reparo</h6></li>
+            <li><button class="dropdown-item" type="button" id="btn-settings">Configurar LLM</button></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="help.html" target="_blank">Ajuda</a></li>
+            <li><button class="dropdown-item" type="button" data-tema-btn>Tema escuro</button></li>
+            <li><a id="link-admin" class="dropdown-item d-none" href="admin.html">Administração</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item" type="button" id="btn-logout">Sair</button></li>
+          </ul>
+        </div>
       </div>
     </div>
   </nav>
@@ -57,18 +65,8 @@
           <!-- 1) Pasta do projeto -->
           <div class="col-12">
             <label class="form-label small fw-semibold">Pasta do projeto/benchmark</label>
-            <div class="input-group pasta-grupo">
-              <input type="text" class="form-control" id="f-folder" required
-                     placeholder="/caminho/para/seu/projeto (ou use 'Enviar pasta')">
-              <button class="btn btn-outline-primary" type="button" id="btn-upload"
-                      title="Enviar uma pasta do SEU computador para o servidor">
-                Enviar pasta
-              </button>
-              <button class="btn btn-outline-primary" type="button" id="btn-browse"
-                      title="Navegar pastas DESTE servidor (admin local)">
-                Procurar no servidor
-              </button>
-            </div>
+            <input type="text" class="form-control" id="f-folder" required
+                   placeholder="/caminho/para/seu/projeto (ou Menu > Enviar pasta do computador)">
             <!-- input invisível usado pelo botão "Enviar pasta" -->
             <input type="file" id="folder-picker" webkitdirectory directory multiple class="d-none">
 
@@ -165,8 +163,8 @@
 
           <!-- 4) Opções de projeto: ficam num pop-up, ver #adv-overlay -->
           <div class="col-12 d-flex flex-wrap align-items-center gap-2">
-            <button type="button" class="btn btn-sm btn-discreto" id="btn-adv">Opções de projeto</button>
-            <span class="small text-body-secondary" id="adv-resumo">nenhuma definida</span>
+            <span class="small text-body-secondary">Opções de projeto:</span>
+            <a href="#" class="small" id="adv-resumo">nenhuma definida</a>
           </div>
 
           <!-- 5) Ação -->
@@ -347,17 +345,19 @@
     </section>
 
     <!-- ===== Histórico ===== -->
-    <div class="card shadow-sm my-4">
+    <div class="card my-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span class="fw-semibold">Histórico
-          <span class="text-muted small fw-normal">(clique numa run para abrir o relatório)</span></span>
+          <span class="dica" id="hist-dica">(clique numa run para abrir o relatório)</span></span>
         <div class="d-flex gap-2">
           <button id="btn-refresh-hist" class="btn btn-sm btn-discreto" title="Atualizar">
             Atualizar
           </button>
+          <button id="btn-toggle-hist" class="btn btn-sm btn-discreto" type="button"
+                  aria-expanded="true" aria-controls="hist-corpo">Recolher</button>
         </div>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body p-0" id="hist-corpo">
         <ul class="list-group list-group-flush" id="history"></ul>
       </div>
     </div>
@@ -459,7 +459,7 @@
 
   <script src="vendor/bootstrap.bundle.min.js"></script>
   <script src="js/api.js?v=12"></script>
-  <script src="js/auth.js?v=4"></script>
-  <script src="js/app.js?v=14"></script>
+  <script src="js/auth.js?v=5"></script>
+  <script src="js/app.js?v=15"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@
   <title>Ajuda: SMART ESBMC / JBMC rv. 1.11-cps</title>
   <script src="js/tema.js?v=1"></script>
   <link href="vendor/bootstrap.min.css" rel="stylesheet">
-  <link href="css/styles.css?v=16" rel="stylesheet">
+  <link href="css/styles.css?v=17" rel="stylesheet">
   <style>
     .ajuda-indice { position: sticky; top: 1rem; font-size: .9rem; }
     .ajuda-indice a { display: block; padding: .2rem 0; color: var(--texto-suave); text-decoration: none; }
@@ -90,8 +90,9 @@ int main(void) {
   return soma / N;
 }</pre>
         <ol class="passos">
-          <li>Em <strong>Nova verificação</strong>, clique em <strong>Enviar pasta</strong> e escolha a pasta do
-            seu computador. Quem administra o servidor também pode usar <strong>Procurar no servidor</strong>.</li>
+          <li>Abra o <strong>Menu</strong>, no canto superior direito, e escolha <strong>Enviar pasta do
+            computador</strong>. Quem administra o servidor também pode usar <strong>Procurar pasta no
+            servidor</strong>, ou digitar o caminho direto no campo da pasta.</li>
           <li>Coloque <strong>unwind</strong> em 6 ou mais. O laço dá 6 voltas e o defeito está na última; com
             5, o verificador não chega até ela e o resultado sai SAFE.</li>
           <li>Clique em <strong>Verificar</strong>. O resultado esperado é BUG, CWE-125 (leitura fora do
@@ -178,9 +179,9 @@ int main(void) {
 
       <section id="projeto">
         <h2>Opções de projeto</h2>
-        <p>Ficam no botão <strong>Opções de projeto</strong>, abaixo dos parâmetros. Servem para verificar
-          parte de um projeto maior sem compilar o projeto inteiro. Para arquivos simples, deixe tudo vazio.
-          O que estiver definido aparece escrito ao lado do botão.</p>
+        <p>Ficam em <strong>Menu &gt; Opções de projeto</strong>. Servem para verificar parte de um projeto
+          maior sem compilar o projeto inteiro. Para arquivos simples, deixe tudo vazio. O que estiver
+          definido aparece escrito abaixo dos parâmetros, e clicar nesse texto também abre as opções.</p>
         <dl>
           <dt>Pastas de headers (-I)</dt>
           <dd>Pastas onde estão os <code>.h</code> que o arquivo inclui, uma por linha. Sem elas, o
@@ -206,7 +207,7 @@ int main(void) {
 
         <h3>1. Configurar o modelo</h3>
         <ol class="passos">
-          <li>Clique em <strong>Configurar LLM</strong>.</li>
+          <li>Abra <strong>Menu &gt; Configurar LLM</strong> (o mesmo botão aparece no quadro do reparo).</li>
           <li>Escolha o provedor: DeepSeek, Groq, OpenRouter, Local (Ollama, roda na própria máquina e não
             precisa de chave) ou Personalizado.</li>
           <li>Cole a chave da API e escolha o modelo. A chave fica só no seu navegador; o servidor não a grava
@@ -254,8 +255,10 @@ int main(void) {
           <li><strong>Baixar pasta</strong>: um .zip com os arquivos originais e os corrigidos ao lado, com o
             sufixo <code>_FIXED</code>. Pela seta ao lado, dá para baixar só os originais.</li>
           <li><strong>Exportar relatório (.md)</strong>: resumo do reparo em texto, com a trilha de cada alvo.</li>
-          <li><strong>Histórico</strong>: clique numa run para reabrir o relatório; <strong>apagar</strong> remove a run e
-            a pasta dela no servidor.</li>
+          <li><strong>Histórico</strong>: cada run mostra a data, a pasta e o modelo usado no reparo (ou "sem
+            reparo"; quem acha o defeito é o ESBMC ou o JBMC, o modelo só entra no conserto). Clique numa run
+            para reabrir o relatório; <strong>apagar</strong> remove a run e a pasta dela no servidor;
+            <strong>Recolher</strong> esconde a lista, e a escolha fica guardada no navegador.</li>
         </ul>
       </section>
 

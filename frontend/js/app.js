@@ -434,6 +434,7 @@ async function pollRepair() {
   } else if (rec.status === "done" || rec.status === "cancelled") {
     const stopped = rec.status === "cancelled";
     setRepairBar(100, stopped ? "Parado (parcial)" : "Concluído", "");
+    loadHistory();   // o histórico passa a mostrar o modelo usado no reparo
     setTimeout(() => {
       document.getElementById("repair-progress").classList.add("d-none");
       renderRepair(rec.result);
@@ -610,12 +611,20 @@ async function loadHistory() {
     if (!runs.length) { el.innerHTML = '<li class="list-group-item text-muted small">Nenhuma run ainda.</li>'; return; }
     el.innerHTML = runs.map(r => {
       const s = r.summary || {};
-      const counts = s.total != null ? `${s.total} alvos · ${s.BUG || 0} bugs` : r.status;
-      return `<li class="list-group-item history-item d-flex justify-content-between align-items-center" data-id="${r.id}">
-        <span class="text-truncate" style="max-width:55%">
-          <code>${r.id}</code> <span class="text-muted small">${r.folder_label || ""}</span>
+      const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+      const counts = s.total != null
+        ? `${plural(s.total, "alvo", "alvos")} · ${plural(s.BUG || 0, "bug", "bugs")}` : r.status;
+      // o bug é achado pelo ESBMC/JBMC; o modelo só aparece se houve reparo
+      const llm = r.repair_model
+        ? `reparo: ${escapeHtml(r.repair_model)}` : "sem reparo";
+      return `<li class="list-group-item history-item d-flex justify-content-between align-items-center flex-wrap gap-2" data-id="${r.id}">
+        <span class="d-flex flex-column text-truncate hist-principal">
+          <span><span class="hist-data">${fmtWhen(r.created_at)}</span>
+            <span class="ms-2">${escapeHtml(r.folder_label || "")}</span></span>
+          <span class="small text-body-secondary">run <code>${r.id}</code></span>
         </span>
-        <span class="d-flex align-items-center gap-2">
+        <span class="d-flex align-items-center flex-wrap gap-2">
+          <span class="small text-body-secondary">${llm}</span>
           <span class="badge text-body-secondary bg-body-tertiary border">${counts}</span>
           <button type="button" class="btn btn-sm btn-link text-danger p-0 px-1 history-del"
                   data-id="${r.id}" data-label="${r.folder_label || r.id}"
@@ -1127,7 +1136,29 @@ function init() {
     if (parent) browseTo(parent);
   });
 
+  // Histórico recolhível; a escolha fica neste navegador
+  const histCorpo = document.getElementById("hist-corpo");
+  const histBtn = document.getElementById("btn-toggle-hist");
+  const aplicaHist = (recolhido) => {
+    histCorpo.classList.toggle("d-none", recolhido);
+    document.getElementById("hist-dica").classList.toggle("d-none", recolhido);
+    histBtn.textContent = recolhido ? "Mostrar" : "Recolher";
+    histBtn.setAttribute("aria-expanded", String(!recolhido));
+  };
+  let histRecolhido = false;
+  try { histRecolhido = localStorage.getItem("smart-hist-recolhido") === "1"; } catch { /* ignora */ }
+  aplicaHist(histRecolhido);
+  histBtn.addEventListener("click", () => {
+    histRecolhido = !histRecolhido;
+    aplicaHist(histRecolhido);
+    try { localStorage.setItem("smart-hist-recolhido", histRecolhido ? "1" : "0"); } catch { /* ignora */ }
+  });
+
   // Pop-up das opções de projeto (-I, arquivos juntos, função de entrada)
+  document.getElementById("adv-resumo").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("adv-overlay").classList.remove("d-none");
+  });
   document.getElementById("btn-adv").addEventListener("click", () =>
     document.getElementById("adv-overlay").classList.remove("d-none"));
   document.getElementById("adv-close").addEventListener("click", closeAdv);

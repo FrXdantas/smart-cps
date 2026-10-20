@@ -114,9 +114,33 @@ def get_run(run_id: str, owner_id: int | None = None) -> dict | None:
     return rec
 
 
+def _modelo_do_reparo(run_id: str) -> str | None:
+    """Modelo de LLM que de fato respondeu no reparo desta run (o histórico mostra).
+
+    Lido do `repair.json`: o nome devolvido pela API em cada tentativa vale mais
+    que o pedido, que pode vir vazio (padrão do servidor). Sem reparo, None.
+    """
+    p = RUNS_DIR / run_id / "repair.json"
+    if not p.is_file():
+        return None
+    try:
+        rep = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — histórico não quebra por um arquivo ruim
+        return None
+    opts = rep.get("options") or {}
+    if opts.get("dry_run"):
+        return "dry-run"
+    for t in (rep.get("result") or {}).get("targets") or []:
+        for a in t.get("attempts") or []:
+            if a.get("model") and a["model"] != "?":
+                return a["model"]
+    return opts.get("model")
+
+
 def _brief(rec: dict) -> dict:
     folder = (rec.get("config") or {}).get("folder")
     return {
+        "repair_model": _modelo_do_reparo(rec["id"]),
         "id": rec["id"], "status": rec["status"], "created_at": rec.get("created_at"),
         "folder": folder,
         # rótulo p/ a UI: o histórico mostra "ana/QuixBugs", nunca o caminho do servidor
