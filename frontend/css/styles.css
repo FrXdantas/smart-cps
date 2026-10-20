@@ -243,7 +243,9 @@ body {
 .selo-ruim { color: var(--tom-ruim) !important; }
 .selo-aviso { color: var(--tom-aviso) !important; }
 .selo-neutro { color: var(--texto-suave) !important; }
+.tom-bom { color: var(--tom-bom); }
 .tom-ruim { color: var(--tom-ruim); }
+.tom-aviso { color: var(--tom-aviso); }
 
 .history-del {
   color: var(--texto-suave);
