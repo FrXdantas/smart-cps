@@ -937,9 +937,8 @@ function fillModelSuggestions(provider) {
   const models = (LLM_PROVIDERS[provider] || {}).models || [];
   document.getElementById("cfg-model-list").innerHTML =
     models.map(m => `<option value="${m}">`).join("");
-  document.getElementById("cfg-model-hint").textContent = models.length
-    ? "Sugestões (editável): " + models.join(", ")
-    : "Informe o nome do modelo do seu provedor.";
+  // as sugestões aparecem na própria lista do campo; sem texto embaixo
+  document.getElementById("cfg-model-hint").textContent = "";
 }
 
 function openSettings() {
@@ -998,37 +997,15 @@ function applyProviderUI(provider) {
   const isLocal  = provider === "local";
   const keyless  = !!(LLM_PROVIDERS[provider] || {}).keyless;
   const keyInput = document.getElementById("cfg-key");
-  const keyWrap  = keyInput.closest(".mb-3");
   const baseInput = document.getElementById("cfg-baseurl");
-  const baseWrap  = baseInput.closest(".mb-3");
 
-  // ---- API key ----
-  if (keyless) {
-    keyInput.value = "";
-    keyInput.disabled = true;
-    keyInput.placeholder = "não usada (Ollama local)";
-  } else {
-    keyInput.disabled = false;
-    keyInput.placeholder = "cole sua chave aqui";
-  }
-
-  // ---- Base URL ----
-  if (isLocal) {
-    baseInput.value = LLM_PROVIDERS.local.base;
-    baseInput.readOnly = true;
-    if (baseWrap && !baseWrap.querySelector(".local-base-note")) {
-      const n = document.createElement("div");
-      n.className = "small text-muted local-base-note mt-1";
-      n.innerHTML = 'Endereço fixo: o reparo é executado pelo <strong>servidor</strong>, que chama o seu próprio Ollama. Você não precisa ter Ollama instalado no seu PC.';
-      baseWrap.appendChild(n);
-    }
-  } else {
-    baseInput.readOnly = false;
-    if (baseWrap) {
-      const n = baseWrap.querySelector(".local-base-note");
-      if (n) n.remove();
-    }
-  }
+  // ---- Endereço e chave: no local o servidor usa o próprio Ollama, então somem ----
+  document.getElementById("cfg-key-wrap").classList.toggle("d-none", keyless);
+  document.getElementById("cfg-base-wrap").classList.toggle("d-none", isLocal);
+  if (keyless) keyInput.value = "";
+  keyInput.disabled = keyless;
+  if (isLocal) baseInput.value = LLM_PROVIDERS.local.base;
+  baseInput.readOnly = isLocal;
 
   // ---- Modelo: input livre (remotos) OU select dropdown (Ollama do servidor) ----
   const hint    = document.getElementById("cfg-model-hint");
@@ -1039,16 +1016,16 @@ function applyProviderUI(provider) {
     mSelect.classList.remove("d-none");
     mSelect.innerHTML = '<option>verificando…</option>';
     mSelect.disabled = true;
-    hint.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>consultando Ollama do servidor…</span>';
+    hint.textContent = "consultando o Ollama do servidor…";
     api.localLlmStatus().then(s => {
       const realModels = s.available ? (s.models || []) : [];
       if (!s.available) {
         mSelect.innerHTML = '<option value="">(Ollama indisponível)</option>';
         mSelect.disabled = true;
-        hint.innerHTML =
-          '<span class="text-danger">Ollama indisponível no servidor</span>' +
-          (s.error ? ': <span class="text-muted">' + s.error + '</span>' : '') +
-          (s.hint ? ' · ' + s.hint : ' · Peça ao admin para rodar <code>ollama serve</code>.');
+        // a dica do servidor diz como resolver; o erro técnico fica no título
+        hint.innerHTML = '<span class="tom-ruim">Ollama indisponível no servidor.</span> ' +
+          escapeHtml(s.hint || "Peça ao administrador para iniciar o Ollama.");
+        hint.title = s.error || "";
         return;
       }
       // popula o select com TODOS os modelos baixados no Ollama do servidor
@@ -1061,12 +1038,11 @@ function applyProviderUI(provider) {
         .join("");
       mSelect.disabled = false;
       mInput.value = preferred; // mantém o input sincronizado (saveSettings lê dele)
-      hint.innerHTML =
-        '<span class="text-success">Ollama do servidor disponível</span> · ' +
-        realModels.length + ' modelo(s) baixado(s). Para mais opções, peça ao admin <code>ollama pull &lt;nome&gt;</code>.';
+      hint.textContent = `${realModels.length} ${realModels.length === 1 ? "modelo instalado" : "modelos instalados"} no servidor`;
     }).catch(e => {
       mSelect.innerHTML = '<option value="">(erro)</option>';
-      hint.innerHTML = '<span class="text-danger">Falha ao consultar /api/llm/local/status: ' + (e.message || e) + '</span>';
+      hint.innerHTML = '<span class="tom-ruim">Não foi possível consultar o Ollama do servidor.</span>';
+      hint.title = e.message || String(e);
     });
   } else {
     mInput.classList.remove("d-none");
@@ -1074,17 +1050,6 @@ function applyProviderUI(provider) {
   }
   // (para não-local, fillModelSuggestions já cuidou do hint)
 
-  // ---- Aviso geral sob o select de provider ----
-  let providerNote = document.getElementById("cfg-provider-note");
-  if (!providerNote) {
-    providerNote = document.createElement("div");
-    providerNote.id = "cfg-provider-note";
-    providerNote.className = "small text-muted mt-1";
-    document.getElementById("cfg-provider").closest(".mb-3").appendChild(providerNote);
-  }
-  providerNote.innerHTML = isLocal
-    ? 'Sem custo, sem chave. O reparo roda na GPU do servidor.'
-    : '';
 }
 
 function saveSettings() {

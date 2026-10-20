@@ -365,30 +365,30 @@
             <option value="deepseek">DeepSeek</option>
             <option value="groq">Groq</option>
             <option value="openrouter">OpenRouter</option>
-            <option value="local">Local (Ollama, GPU desta máquina)</option>
+            <option value="local">Local (Ollama)</option>
             <option value="custom">Personalizado</option>
           </select>
         </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Base URL</label>
-          <input type="text" class="form-control form-control-sm" id="cfg-baseurl" placeholder="https://...">
+        <!-- endereço e chave somem no provedor local: o servidor chama o próprio Ollama -->
+        <div class="mb-3" id="cfg-base-wrap">
+          <label class="form-label small fw-semibold" for="cfg-baseurl">Endereço</label>
+          <input type="text" class="form-control form-control-sm" id="cfg-baseurl">
         </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">API key</label>
+        <div class="mb-3" id="cfg-key-wrap">
+          <label class="form-label small fw-semibold" for="cfg-key">Chave da API</label>
           <div class="input-group input-group-sm">
-            <input type="password" class="form-control" id="cfg-key"
-                   placeholder="cole sua chave aqui" autocomplete="off">
+            <input type="password" class="form-control" id="cfg-key" autocomplete="off">
             <button class="btn btn-outline-secondary" type="button" id="cfg-key-toggle" title="Mostrar/ocultar">
               Mostrar
             </button>
           </div>
-          <small class="text-muted">Fica só no seu navegador (localStorage). Nunca é gravada em disco no servidor.</small>
+          <small class="text-muted">Fica só neste navegador.</small>
         </div>
         <div class="mb-2">
-          <label class="form-label small fw-semibold">Modelo</label>
+          <label class="form-label small fw-semibold" for="cfg-model">Modelo</label>
           <!-- input livre para provedores remotos (lista grande, nomes mudam) -->
           <input type="text" class="form-control form-control-sm" id="cfg-model"
-                 list="cfg-model-list" placeholder="ex.: deepseek-v4-flash" autocomplete="off">
+                 list="cfg-model-list" autocomplete="off">
           <datalist id="cfg-model-list"></datalist>
           <!-- select dropdown explícito para o Ollama do servidor: populado em runtime -->
           <select class="form-select form-select-sm d-none" id="cfg-model-select"></select>
@@ -397,7 +397,7 @@
         <div id="cfg-saved" class="text-success small d-none">Configuração salva.</div>
       </div>
       <div class="card-footer d-flex justify-content-between">
-        <button class="btn btn-sm btn-outline-danger" id="cfg-clear">Limpar</button>
+        <button class="btn btn-sm btn-discreto" id="cfg-clear">Limpar</button>
         <button class="btn btn-sm btn-primary" id="cfg-save">Salvar</button>
       </div>
     </div>
@@ -435,7 +435,7 @@
         </div>
       </div>
       <div class="card-footer d-flex justify-content-between">
-        <button class="btn btn-sm btn-outline-danger" id="adv-clear">Limpar</button>
+        <button class="btn btn-sm btn-discreto" id="adv-clear">Limpar</button>
         <button class="btn btn-sm btn-primary" id="adv-ok">Concluir</button>
       </div>
     </div>
@@ -448,6 +448,6 @@
   <script src="vendor/bootstrap.bundle.min.js"></script>
   <script src="js/api.js?v=12"></script>
   <script src="js/auth.js?v=5"></script>
-  <script src="js/app.js?v=19"></script>
+  <script src="js/app.js?v=20"></script>
 </body>
 </html>
