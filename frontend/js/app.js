@@ -5,7 +5,7 @@ const STATUS_BADGE = {
   UNKNOWN: "text-bg-warning", TIMEOUT: "text-bg-warning",
   ERROR: "text-bg-secondary", COMPILE_FAIL: "text-bg-dark",
   // classe de biblioteca (sem `main`): alvo inaplicável, não erro
-  NO_ENTRY_POINT: "text-bg-light border text-secondary",
+  NO_ENTRY_POINT: "bg-body-tertiary border text-secondary",
 };
 const LANG_BY_EXT = { java: "java", kt: "kotlin", c: "c" };
 function langOf(t) {
@@ -15,10 +15,10 @@ function langOf(t) {
 const VERDICT_BADGE = {
   FIX_OK: "text-bg-success", STILL_VULNERABLE: "text-bg-warning",
   DIFFERENT_BUG: "text-bg-info", TIMEOUT: "text-bg-secondary", ERROR: "text-bg-dark",
-  PROVIDER_ERROR: "text-bg-light border text-warning",
+  PROVIDER_ERROR: "bg-body-tertiary border text-warning",
   // patch recusado pelas guardas ANTES de chegar ao verificador: reimplementou
   // classe que já existe em outro arquivo, ou apagou asserção p/ a violação sumir
-  INVALID_PATCH: "text-bg-light border text-danger",
+  INVALID_PATCH: "bg-body-tertiary border text-danger",
 };
 
 function escapeHtml(s) {
@@ -225,11 +225,15 @@ function finishRun(rec) {
 }
 
 // ---------------- renderização ----------------
+// filete à esquerda na cor do status; total e contagens neutras ficam em cinza
+const COR_STATUS = { "text-danger": "var(--bs-danger)", "text-success": "var(--bs-success)",
+                     "text-warning": "var(--bs-warning)", "text-primary": "var(--marca)" };
+
 function summaryCard(label, value, cls) {
-  return `<div class="col"><div class="card text-center shadow-sm">
-    <div class="card-body py-2">
-      <div class="fs-4 fw-bold ${cls}">${value}</div>
-      <div class="small text-muted">${label}</div>
+  return `<div class="col-6 col-md"><div class="card stat" style="--cor-status: ${COR_STATUS[cls] || "var(--borda)"}">
+    <div class="card-body">
+      <div class="valor ${cls}">${value}</div>
+      <div class="rotulo">${label}</div>
     </div></div></div>`;
 }
 
@@ -245,20 +249,20 @@ function renderResults(rec) {
   // cabeçalho: qual run está sendo exibida (rótulo da pasta, não o caminho do servidor)
   const folder = rec.folder_label || "";
   const cancMark = rec.status === "cancelled"
-    ? ' · <span class="text-danger fw-semibold">⏹ cancelada (parcial)</span>' : "";
+    ? ' · <span class="text-danger fw-semibold">cancelada (parcial)</span>' : "";
   document.getElementById("results-header").innerHTML =
     `run <code>${rec.id || "?"}</code> · ${folder} · ${fmtWhen(rec.created_at)}${cancMark}`;
 
   const s = result.summary || {};
   const m = result.metrics || {};
   document.getElementById("summary-cards").innerHTML =
-    summaryCard("Total", s.total || 0, "text-dark") +
+    summaryCard("Total", s.total || 0, "text-body") +
     summaryCard("BUG", s.BUG || 0, "text-danger") +
     summaryCard("SAFE", s.SAFE || 0, "text-success") +
     (s.UNKNOWN ? summaryCard("UNKNOWN", s.UNKNOWN, "text-warning") : "") +
     summaryCard("TIMEOUT", s.TIMEOUT || 0, "text-warning") +
     summaryCard("ERROR", s.ERROR || 0, "text-secondary") +
-    (s.COMPILE_FAIL ? summaryCard("COMPILE_FAIL", s.COMPILE_FAIL, "text-dark") : "") +
+    (s.COMPILE_FAIL ? summaryCard("COMPILE_FAIL", s.COMPILE_FAIL, "text-body") : "") +
     (s.NO_ENTRY_POINT ? summaryCard("SEM MAIN", s.NO_ENTRY_POINT, "text-secondary") : "") +
     summaryCard("CASTLE", m.castle_score ?? "—", "text-primary");
 
@@ -269,7 +273,7 @@ function renderResults(rec) {
     wEl.classList.remove("d-none");
     wEl.innerHTML =
       `<strong>${warns.length} unidade(s) não compilaram</strong> ` +
-      `— aparecem como <span class="badge text-bg-dark">COMPILE_FAIL</span> na tabela (clique p/ ver o erro). ` +
+      `e aparecem como <span class="badge text-bg-dark">COMPILE_FAIL</span> na tabela (clique p/ ver o erro). ` +
       `<details class="mt-1"><summary>ver lista</summary>` +
       `<div class="mt-1" style="max-height:160px;overflow:auto;font-family:monospace">${warns.map(escapeHtml).join("<br>")}</div></details>`;
   } else {
@@ -300,12 +304,12 @@ function renderResults(rec) {
 }
 
 function targetRow(t) {
-  const badge = STATUS_BADGE[t.status] || "text-bg-light";
+  const badge = STATUS_BADGE[t.status] || "bg-body-tertiary text-body";
   const tr = document.createElement("tr");
   tr.className = "target-row";
   tr.innerHTML = `
     <td class="text-truncate" style="max-width:220px" title="${t.target}">${t.target}</td>
-    <td><span class="badge text-bg-light border" title="verificado por ${t.kind}">${langOf(t)}</span></td>
+    <td><span class="badge bg-body-tertiary text-body border" title="verificado por ${t.kind}">${langOf(t)}</span></td>
     <td><span class="badge ${badge}">${t.status}</span></td>
     <td class="small">${t.bug || "—"}</td>
     <td class="small">${t.cwe_id || "—"}</td>
@@ -468,7 +472,7 @@ function renderRepair(result) {
 
 const REPAIR_STATUS_BADGE = {
   REPAIRED: "text-bg-success", NOT_REPAIRED: "text-bg-warning",
-  ERROR: "text-bg-secondary", PROVIDER_ERROR: "text-bg-light border text-warning",
+  ERROR: "text-bg-secondary", PROVIDER_ERROR: "bg-body-tertiary border text-warning",
 };
 
 function repairRow(t) {
@@ -501,11 +505,11 @@ function renderRepairTable() {
 
 // detalhe de UM alvo reparado: trilha de iterações + diff lado a lado
 function showRepairDetail(t) {
-  document.getElementById("repair-detail-title").textContent = `${t.target} — ${t.status}`;
+  document.getElementById("repair-detail-title").textContent = `${t.target}: ${t.status}`;
   const trail = (t.attempts || []).map(a => {
     const spd = a.tok_s ? ` · ${a.tok_s} tok/s` : "";
     const tip = `modelo: ${a.model}` + (a.tokens ? ` · ${a.tokens} tokens em ${(a.ms / 1000).toFixed(1)}s` : "");
-    return `<span class="badge ${VERDICT_BADGE[a.verdict] || "text-bg-light"} me-1" title="${tip}">it${a.iteration}: ${a.verdict}${spd}</span>`;
+    return `<span class="badge ${VERDICT_BADGE[a.verdict] || "bg-body-tertiary text-body"} me-1" title="${tip}">it${a.iteration}: ${a.verdict}${spd}</span>`;
   }).join("");
   document.getElementById("repair-detail-trail").innerHTML =
     `<div class="small fw-semibold mb-1">Trilha de iterações <span class="text-muted fw-normal">(oráculo = verificador)</span>:</div>${trail || "—"}`;
@@ -541,7 +545,7 @@ function exportRepairReport() {
   if (!lastRepairResult) return;
   const r = lastRepairResult, s = r.summary || {};
   const L = [];
-  L.push(`# Relatório de reparo — run ${lastRepairRunId || ""}`, "");
+  L.push(`# Relatório de reparo, run ${lastRepairRunId || ""}`, "");
   L.push(`Gerado em ${new Date().toLocaleString("pt-BR")}`, "");
   L.push("## Resumo");
   L.push(`- Bugs: ${s.total || 0}`);
@@ -555,7 +559,7 @@ function exportRepairReport() {
   L.push(`- Velocidade média de geração: ${s.avg_tok_s || 0} tok/s`, "");
   (r.targets || []).forEach((t) => {
     const ext = (/\.(\w+)$/.exec(t.target) || [, ""])[1];
-    L.push(`## ${t.target} — ${t.status}`);
+    L.push(`## ${t.target}: ${t.status}`);
     L.push(`- Bug original: ${t.original_bug}`);
     L.push(`- Iterações: ${t.iterations}`);
     const trail = (t.attempts || []).map(a =>
@@ -584,9 +588,9 @@ function downloadFolder(fixed) {
 
 function showDetail(t) {
   document.getElementById("detail-title").textContent = t.target;
-  const info = t.cwe_id ? `${t.cwe_id} — ${t.cwe_name || ""}` : "—";
+  const info = t.cwe_id ? `${t.cwe_id}${t.cwe_name ? " (" + t.cwe_name + ")" : ""}` : "—";
   document.getElementById("detail-meta").innerHTML = `
-    <span class="badge ${STATUS_BADGE[t.status] || "text-bg-light"}">${t.status}</span>
+    <span class="badge ${STATUS_BADGE[t.status] || "bg-body-tertiary text-body"}">${t.status}</span>
     <span class="ms-2">Bug: <strong>${t.bug || "—"}</strong></span>
     <span class="ms-2">CWE: ${info}</span>
     <span class="ms-2">CERT: ${t.cert_priority ? "P" + t.cert_priority + " (" + (t.cert_level || "") + ")" : "—"}</span>
@@ -618,10 +622,10 @@ async function loadHistory() {
           <code>${r.id}</code> <span class="text-muted small">${r.folder_label || ""}</span>
         </span>
         <span class="d-flex align-items-center gap-2">
-          <span class="badge text-bg-light border">${counts}</span>
+          <span class="badge text-body-secondary bg-body-tertiary border">${counts}</span>
           <button type="button" class="btn btn-sm btn-link text-danger p-0 px-1 history-del"
                   data-id="${r.id}" data-label="${r.folder_label || r.id}"
-                  title="Apagar esta run e a pasta dela no servidor">🗑</button>
+                  title="Apagar esta run e a pasta dela no servidor">apagar</button>
         </span>
       </li>`;
     }).join("");
@@ -779,7 +783,7 @@ async function loadHealth() {
         : "text-danger fw-semibold text-decoration-line-through";
       const tip = info.path || (info.available ? "" : "indisponível");
       return `<span class="${cls}" title="${escapeHtml(tip)}">${escapeHtml(name)}</span>`;
-    }).join(' <span class="text-black-50">|</span> ');
+    }).join(' <span class="text-body-tertiary">·</span> ');
   } catch {
     st.className = "badge text-bg-danger";
     st.textContent = "offline";
@@ -961,7 +965,7 @@ function applyProviderUI(provider) {
   if (keyless) {
     keyInput.value = "";
     keyInput.disabled = true;
-    keyInput.placeholder = "não usada — Ollama local";
+    keyInput.placeholder = "não usada (Ollama local)";
   } else {
     keyInput.disabled = false;
     keyInput.placeholder = "cole sua chave aqui";
@@ -1002,7 +1006,7 @@ function applyProviderUI(provider) {
         mSelect.disabled = true;
         hint.innerHTML =
           '<span class="text-danger">Ollama indisponível no servidor</span>' +
-          (s.error ? ' — <span class="text-muted">' + s.error + '</span>' : '') +
+          (s.error ? ': <span class="text-muted">' + s.error + '</span>' : '') +
           (s.hint ? ' · ' + s.hint : ' · Peça ao admin para rodar <code>ollama serve</code>.');
         return;
       }
@@ -1144,7 +1148,7 @@ async function loadSolvers() {
     for (const opt of sel.options) {
       if (avail.size && !avail.has(opt.value)) {
         opt.disabled = true;
-        opt.textContent += " — indisponível neste build";
+        opt.textContent += " (indisponível neste build)";
         if (opt.selected) changed = true;
       }
     }

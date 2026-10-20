@@ -8,9 +8,8 @@
 
     const label = document.getElementById("user-label");
     if (label) {
-      label.innerHTML =
-        me.login +
-        ' <span class="badge bg-light text-dark ms-1">' + me.role + '</span>';
+      // textContent: o login vem do banco e não deve virar HTML
+      label.textContent = me.role === "admin" ? me.login + " (administrador)" : me.login;
     }
 
     if (me.role === "admin") {

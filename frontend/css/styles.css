@@ -1,91 +1,225 @@
-/* SMART ESBMC/JBMC — tema claro, cores predominantes em azul.
-   Sobrescreve o azul do Bootstrap para a identidade do projeto. */
+/* SMART ESBMC/JBMC: tema claro e escuro.
+   Cor da marca em verde-petróleo sobre fundo neutro. Todas as cores saem das
+   variáveis abaixo, para os dois temas ficarem no mesmo lugar. */
 
-:root {
-  --bs-primary: #155080;
-  --bs-primary-rgb: 21, 80, 128;
-  --brand-dark: #0b3d66;
-  --brand-light: #eef4f9;
+:root,
+[data-bs-theme="light"] {
+  --marca: #0f6b63;
+  --marca-forte: #0b514b;
+  --marca-suave: #e5f0ee;
+  --fundo: #f4f4f1;
+  --superficie: #ffffff;
+  --borda: #e1e1da;
+  --texto: #1d2327;
+  --texto-suave: #5f6b70;
+  --codigo-fundo: #f1f3f1;
+  --codigo-ok: #ebf6ee;
+  --codigo-ok-borda: #bfdcc8;
+  --campo: #ffffff;
+
+  --bs-body-bg: var(--fundo);
+  --bs-body-color: var(--texto);
+  --bs-secondary-color: var(--texto-suave);
+  --bs-border-color: var(--borda);
+  --bs-primary: var(--marca);
+  --bs-primary-rgb: 15, 107, 99;
+  --bs-link-color: var(--marca);
+  --bs-link-color-rgb: 15, 107, 99;
+  --bs-link-hover-color: var(--marca-forte);
+  --bs-link-hover-color-rgb: 11, 81, 75;
+  --bs-focus-ring-color: rgba(15, 107, 99, .25);
+}
+
+[data-bs-theme="dark"] {
+  --marca: #5bb5a9;
+  --marca-forte: #7fcabf;
+  --marca-suave: #1d3330;
+  --fundo: #131719;
+  --superficie: #1b2124;
+  --borda: #2c3438;
+  --texto: #e3e7e5;
+  --texto-suave: #9aa6a9;
+  --codigo-fundo: #161b1d;
+  --codigo-ok: #172a22;
+  --codigo-ok-borda: #2d5240;
+  --campo: #131719;
+
+  --bs-body-bg: var(--fundo);
+  --bs-body-color: var(--texto);
+  --bs-secondary-color: var(--texto-suave);
+  --bs-border-color: var(--borda);
+  --bs-primary: var(--marca);
+  --bs-primary-rgb: 91, 181, 169;
+  --bs-link-color: var(--marca);
+  --bs-link-color-rgb: 91, 181, 169;
+  --bs-link-hover-color: var(--marca-forte);
+  --bs-link-hover-color-rgb: 127, 202, 191;
+  --bs-focus-ring-color: rgba(91, 181, 169, .3);
 }
 
 body {
-  background-color: #f7f9fb;
-  color: #1a1a1a;
+  background-color: var(--fundo);
+  color: var(--texto);
 }
 
-/* Navbar e botões primários no azul da marca */
-.bg-primary {
-  background-color: var(--brand-dark) !important;
+/* ---------- barra superior ---------- */
+.app-bar {
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borda);
+}
+.app-bar .marca {
+  color: var(--texto);
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.app-bar .marca .versao {
+  color: var(--texto-suave);
+  font-weight: 500;
+  font-size: .8rem;
+  margin-left: .4rem;
+}
+.app-bar .subtitulo {
+  color: var(--texto-suave);
+  font-size: .82rem;
 }
 
+/* ---------- botões ---------- */
 .btn-primary {
-  --bs-btn-bg: var(--bs-primary);
-  --bs-btn-border-color: var(--bs-primary);
-  --bs-btn-hover-bg: var(--brand-dark);
-  --bs-btn-hover-border-color: var(--brand-dark);
+  --bs-btn-bg: var(--marca);
+  --bs-btn-border-color: var(--marca);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-bg: var(--marca-forte);
+  --bs-btn-hover-border-color: var(--marca-forte);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: var(--marca-forte);
+  --bs-btn-active-border-color: var(--marca-forte);
+  --bs-btn-disabled-bg: var(--marca);
+  --bs-btn-disabled-border-color: var(--marca);
 }
-
+[data-bs-theme="dark"] .btn-primary {
+  --bs-btn-color: #0d1413;
+  --bs-btn-hover-color: #0d1413;
+  --bs-btn-active-color: #0d1413;
+  --bs-btn-disabled-color: #0d1413;
+}
 .btn-outline-primary {
-  --bs-btn-color: var(--bs-primary);
-  --bs-btn-border-color: var(--bs-primary);
-  --bs-btn-hover-bg: var(--bs-primary);
-  --bs-btn-hover-border-color: var(--bs-primary);
+  --bs-btn-color: var(--marca);
+  --bs-btn-border-color: var(--marca);
+  --bs-btn-hover-bg: var(--marca);
+  --bs-btn-hover-border-color: var(--marca);
+  --bs-btn-hover-color: var(--superficie);
+  --bs-btn-active-bg: var(--marca-forte);
+  --bs-btn-active-border-color: var(--marca-forte);
+  --bs-btn-active-color: var(--superficie);
+}
+.btn-discreto {
+  --bs-btn-color: var(--texto-suave);
+  --bs-btn-border-color: var(--borda);
+  --bs-btn-hover-color: var(--texto);
+  --bs-btn-hover-bg: var(--marca-suave);
+  --bs-btn-hover-border-color: var(--borda);
+}
+#btn-run { min-width: 9rem; }
+
+.text-primary { color: var(--marca) !important; }
+.bg-primary { background-color: var(--marca) !important; }
+.progress-bar.bg-primary { background-color: var(--marca) !important; }
+.form-check-input:checked {
+  background-color: var(--marca);
+  border-color: var(--marca);
+}
+.form-control, .form-select { background-color: var(--campo); }
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+  border-color: var(--marca);
+  box-shadow: 0 0 0 .2rem var(--bs-focus-ring-color);
 }
 
-.text-primary {
-  color: var(--bs-primary) !important;
-}
-
+/* ---------- cartões ---------- */
 .card {
-  border: 1px solid #e3e9ef;
-  border-radius: .6rem;
+  --bs-card-bg: var(--superficie);
+  --bs-card-cap-bg: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: .5rem;
 }
+.card.shadow-sm { box-shadow: none !important; }
+.card-header { border-bottom: 1px solid var(--borda); }
+.card-footer { background: var(--superficie); border-top: 1px solid var(--borda); }
+.card-header.titulo {
+  font-weight: 600;
+  padding-top: .7rem;
+  padding-bottom: .7rem;
+}
+.dica { color: var(--texto-suave); font-size: .85rem; font-weight: 400; }
 
-.card-header {
-  border-bottom: 1px solid #e3e9ef;
+/* Números do resumo: um filete colorido à esquerda dá o status sem pintar o cartão. */
+.stat {
+  border-left: 4px solid var(--cor-status, var(--borda));
+  text-align: left;
+}
+.stat .card-body { padding: .55rem .8rem; }
+.stat .valor { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+.stat .rotulo { font-size: .78rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .4px; }
+
+/* Ajuda "(?)": círculo pequeno em vez do texto entre parênteses. */
+.ajuda {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-left: .2rem;
+  border: 1px solid var(--borda);
+  border-radius: 50%;
+  font-size: .7rem;
+  color: var(--texto-suave);
+  cursor: help;
+  vertical-align: text-top;
 }
 
 .border-dashed {
-  border: 1px dashed #c3d2df !important;
-  background: var(--brand-light);
+  border: 1px dashed var(--borda) !important;
+  background: var(--marca-suave);
 }
 
-/* Badges de ferramenta */
-.tool-badge {
+.tool-badge { font-weight: 500; }
+
+/* ---------- listas e tabelas ---------- */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-hover-bg: var(--marca-suave);
+}
+.target-row { cursor: pointer; }
+.history-item { cursor: pointer; background: var(--superficie); }
+.history-item:hover { background-color: var(--marca-suave); }
+.history-item.active {
+  background-color: var(--marca-suave);
+  border-left: 4px solid var(--marca);
   font-weight: 500;
 }
-
-/* SPA */
-.target-row { cursor: pointer; }
-.history-item { cursor: pointer; }
-.history-item:hover, .target-row:hover { background-color: var(--brand-light); }
+.history-del {
+  font-size: .8rem;
+  text-decoration: none;
+}
 
 .explanation {
-  background: var(--brand-light);
-  border: 1px solid #d6e2ec;
+  background: var(--codigo-fundo);
+  border: 1px solid var(--borda);
   border-radius: .4rem;
   padding: 12px;
   white-space: pre-wrap;
   font-size: .85rem;
   margin-bottom: 0;
-  color: #1a1a1a;
+  color: var(--texto);
 }
 
 #progress-bar { transition: width .15s linear; }
 #repair-bar { transition: width .3s ease; }
 
-/* Histórico: item ativo (run exibida) */
-.history-item.active {
-  background-color: var(--brand-light);
-  border-left: 4px solid var(--bs-primary);
-  font-weight: 500;
-}
-
 /* Navegador de diretórios */
 .browser-list {
   max-height: 240px;
   overflow-y: auto;
-  border: 1px solid #e3e9ef;
+  border: 1px solid var(--borda);
   border-radius: .4rem;
 }
 .browser-dir { border: 0; }
@@ -95,7 +229,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 1080;
-  background: rgba(11, 61, 102, .45);
+  background: rgba(10, 20, 20, .5);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -109,8 +243,8 @@ body {
 
 /* Diff de reparo: código original vs. corrigido, lado a lado */
 .code-pane {
-  background: var(--brand-light);
-  border: 1px solid #d6e2ec;
+  background: var(--codigo-fundo);
+  border: 1px solid var(--borda);
   border-radius: .4rem;
   padding: 8px 10px;
   font-size: .78rem;
@@ -119,8 +253,26 @@ body {
   overflow: auto;
   max-height: 360px;
   margin-bottom: 0;
+  color: var(--texto);
 }
 .code-pane.code-fixed {
-  background: #eef8f0;
-  border-color: #bfe3c8;
+  background: var(--codigo-ok);
+  border-color: var(--codigo-ok-borda);
+}
+
+/* Celular: o campo da pasta ganha a linha inteira e os botões descem. */
+@media (max-width: 575.98px) {
+  .pasta-grupo { flex-wrap: wrap; }
+  .pasta-grupo > .form-control {
+    flex: 1 1 100%;
+    width: 100%;
+    border-radius: var(--bs-border-radius) !important;
+    margin-bottom: .4rem;
+  }
+  .pasta-grupo > .btn {
+    flex: 1 1 0;
+    border-radius: var(--bs-border-radius) !important;
+    margin-left: 0 !important;
+  }
+  .pasta-grupo > .btn + .btn { margin-left: .4rem !important; }
 }
