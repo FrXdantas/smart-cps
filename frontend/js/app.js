@@ -141,6 +141,8 @@ async function launchRun(ev) {
     solver: document.getElementById("f-solver").value,
     strategy: document.getElementById("f-strategy")?.value || "bounded",
     unsigned_overflow: !!document.getElementById("f-unsigned-overflow")?.checked,
+    concurrency: !!document.getElementById("f-concurrency")?.checked,
+    nan_check: !!document.getElementById("f-nan-check")?.checked,
   };
   // Opções de projeto (avançado): só incluídas quando preenchidas. As listas
   // vêm como texto (uma entrada por linha) e viram array; o backend ignora vazios.
@@ -393,9 +395,8 @@ async function launchRepair() {
       dry_run: dryRun,
       only_unrepaired: document.getElementById("repair-incremental").checked,
       max_iters: 5,
-      unwind: +document.getElementById("f-unwind").value,
-      timeout: +document.getElementById("f-timeout").value,
-      solver: document.getElementById("f-solver").value,
+      // unwind/timeout/solver não vão daqui: o servidor usa os da run, para o
+      // oráculo re-verificar no mesmo regime em que o bug foi achado.
       provider: cfg.provider || null,
       base_url: cfg.base_url || null,
       api_key: cfg.api_key || null,

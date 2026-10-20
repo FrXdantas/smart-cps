@@ -71,6 +71,14 @@ def create_repair(run_id: str, opts: dict) -> dict:
     opts["concurrency"] = bool(cfg.get("concurrency", False))
     opts["include_dirs"] = list(cfg.get("include_dirs") or [])
     opts["function"] = cfg.get("function") or None
+    opts["nan_check"] = bool(cfg.get("nan_check", False))
+    # Bound, tempo e solver também vêm da run, e não da tela no momento do
+    # reparo: com unwind menor que o da run, o patch passava num regime mais
+    # fraco do que o que achou o bug (visto no teste de 18/10/2026). Os valores
+    # do pedido ficam só como reserva para runs antigas sem esses campos.
+    for k in ("unwind", "timeout", "solver"):
+        if cfg.get(k) is not None:
+            opts[k] = cfg[k]
     # A API key NUNCA é persistida em disco: fica só em memória, repassada ao worker.
     api_key = opts.pop("api_key", None)
     # Reparo anterior (antes de sobrescrever) — base do modo incremental.
@@ -115,6 +123,7 @@ def _execute(run_id: str, targets: list, opts: dict, api_key: str | None = None,
             prior_results=prior_results,
             only_unrepaired=opts.get("only_unrepaired", False),
             unsigned_overflow=opts.get("unsigned_overflow", False),
+            nan_check=opts.get("nan_check", False),
             strategy=opts.get("strategy"),
             concurrency=opts.get("concurrency", False),
             include_dirs=opts.get("include_dirs") or None,

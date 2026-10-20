@@ -156,7 +156,8 @@ def _build_target(kind, target, source, raw, obj, elapsed,
 def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector",
                      concurrency=False, build_root="build_verify",
                      unwinding_assertions=False, strategy=None,
-                     unsigned_overflow=False, include_dirs=None, link_unit=None,
+                     unsigned_overflow=False, nan_check=False, include_dirs=None,
+                     link_unit=None,
                      function=None, on_progress=None, should_cancel=None) -> RunResult:
     """Roda a verificação. `on_progress(phase, done, total)` é chamado ao longo
     das fases (scanning / compiling / verifying / done) para feedback visual.
@@ -213,7 +214,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         "solver": solver, "solver_requested": solver_requested,
         "concurrency": concurrency, "strategy": strategy,
         "unwinding_assertions": (strategy == "sound"),
-        "unsigned_overflow": unsigned_overflow,
+        "unsigned_overflow": unsigned_overflow, "nan_check": nan_check,
     }
     _cb("compiling", 0, 0)
     stubs_cp = stubs.ensure_stubs()   # classpath p/ APIs SV-COMP/CProver (ou None)
@@ -279,7 +280,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         t = time.perf_counter()
         res = run_esbmc(cfile, unwind=unwind, timeout=timeout,
                         concurrency=concurrency, solver=solver,
-                        strategy=strategy, unsigned_overflow=unsigned_overflow,
+                        strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
                         include_dirs=include_dirs, function=function,
                         max_mem_mb=mem_por_processo)
         return _build_target("esbmc", os.path.basename(cfile), cfile, res.raw, None,
@@ -291,7 +292,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         t = time.perf_counter()
         res = run_esbmc(files, unwind=unwind, timeout=timeout,
                         concurrency=concurrency, solver=solver,
-                        strategy=strategy, unsigned_overflow=unsigned_overflow,
+                        strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
                         include_dirs=include_dirs, function=function,
                         max_mem_mb=mem_por_processo)
         label = " + ".join(os.path.basename(f) for f in files)

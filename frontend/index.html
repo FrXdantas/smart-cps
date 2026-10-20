@@ -115,12 +115,24 @@
             </small>
           </div>
           <div class="col-12 col-md-6">
-            <label class="form-label small">verificação de overflow <span class="text-muted" style="cursor:help"
-              title="Adiciona --unsigned-overflow-check. O overflow COM SINAL já é checado sempre (é UB em C). O overflow UNSIGNED é wraparound DEFINIDO pela norma C, então o ESBMC só o reporta com este opt-in. Ligue para caçar overflow de tamanho/alocação (CWE-190, ex.: CVE-2025-53630). Desligado por padrão: código que usa wraparound de propósito (hash, ring buffer, aritmética modular) viraria falso-positivo.">(?)</span></label>
+            <label class="form-label small">propriedades opcionais <span class="text-muted" style="cursor:help"
+              title="Overflow unsigned: adiciona --unsigned-overflow-check. O overflow COM SINAL já é checado sempre (é UB em C). O overflow UNSIGNED é wraparound DEFINIDO pela norma C, então o ESBMC só o reporta com este opt-in. Ligue para caçar overflow de tamanho/alocação (CWE-190, ex.: CVE-2025-53630). Desligado por padrão: código que usa wraparound de propósito (hash, ring buffer, aritmética modular) viraria falso-positivo.">(?)</span></label>
             <div class="form-check mt-2">
               <input class="form-check-input" type="checkbox" id="f-unsigned-overflow">
               <label class="form-check-label small" for="f-unsigned-overflow">
                 checar overflow <strong>unsigned</strong> (size_t/unsigned)
+              </label>
+            </div>
+            <div class="form-check" title="Adiciona --data-races-check, --deadlock-check e --context-bound 3. Procura corrida de dados (CWE-362) e impasse (CWE-833) entre threads (pthread). Desligado por padrão: deixa a verificação bem mais lenta.">
+              <input class="form-check-input" type="checkbox" id="f-concurrency">
+              <label class="form-check-label small" for="f-concurrency">
+                checar <strong>concorrência</strong> (corrida e impasse entre threads)
+              </label>
+            </div>
+            <div class="form-check" title="Adiciona --nan-check: operação em ponto flutuante que produz NaN (0/0, inf-inf). Desligado por padrão: há código que produz e trata NaN de propósito.">
+              <input class="form-check-input" type="checkbox" id="f-nan-check">
+              <label class="form-check-label small" for="f-nan-check">
+                checar <strong>NaN</strong> em ponto flutuante
               </label>
             </div>
           </div>

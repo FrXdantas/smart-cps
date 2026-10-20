@@ -167,3 +167,20 @@ def test_commandline_registra_o_verificador_usado():
 def test_versao_da_ferramenta_e_a_revisao():
     run = build_sarif(_run_com_violacao(), tool_version="1.07")["runs"][0]
     assert run["tool"]["driver"]["version"] == "1.07"
+
+
+def test_sarif_registra_todas_as_opcoes():
+    """Incremento 1: inclusive as opções que não são flag do ESBMC (link_unit)."""
+    run = _fake_run()
+    run["config"].update({"unsigned_overflow": True, "nan_check": True,
+                          "include_dirs": ["/inc"], "link_unit": ["a.c", "b.c"],
+                          "function": "tarefa", "concurrency": True})
+    inv = build_sarif(run)["runs"][0]["invocations"][0]
+    props = inv["properties"]
+    assert props["nan_check"] is True and props["unsigned_overflow"] is True
+    assert props["include_dirs"] == ["/inc"] and props["link_unit"] == ["a.c", "b.c"]
+    assert props["function"] == "tarefa"
+    cmd = inv["commandLine"]
+    for flag in ("-I /inc", "--function tarefa", "--unsigned-overflow-check",
+                 "--nan-check", "--data-races-check"):
+        assert flag in cmd, flag

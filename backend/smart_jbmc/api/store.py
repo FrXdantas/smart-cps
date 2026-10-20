@@ -82,6 +82,7 @@ def _execute(run_id: str, config: dict) -> None:
             unwinding_assertions=config.get("unwinding_assertions", False),
             strategy=config.get("strategy"),
             unsigned_overflow=config.get("unsigned_overflow", False),
+            nan_check=config.get("nan_check", False),
             include_dirs=config.get("include_dirs") or None,
             link_unit=config.get("link_unit") or None,
             function=config.get("function") or None,

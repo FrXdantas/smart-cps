@@ -91,7 +91,7 @@ def instrumentar(patch_code: str, idx: int, ext: str) -> str | None:
 
 def ponto_do_defeito_executa(*, original_code, patch_code, linha_defeito, ext,
                              work_dir, stem, unwind, timeout, solver,
-                             unsigned_overflow=False, strategy=None,
+                             unsigned_overflow=False, nan_check=False, strategy=None,
                              concurrency=False, include_dirs=None, function=None,
                              unit_sources=None, repaired_source=None,
                              entry_class=None) -> bool | None:
@@ -117,7 +117,7 @@ def ponto_do_defeito_executa(*, original_code, patch_code, linha_defeito, ext,
         # A sonda é a ÚNICA asserção que pode falhar (o patch já passou no
         # oráculo). Falhou => o ponto executa.
         reg = regression_check(caminho, "Assertion Failure", unwind, timeout, solver,
-                               unsigned_overflow=unsigned_overflow, strategy=strategy,
+                               unsigned_overflow=unsigned_overflow, nan_check=nan_check, strategy=strategy,
                                concurrency=concurrency, include_dirs=include_dirs,
                                function=function,
                                unit_sources=unit_sources,

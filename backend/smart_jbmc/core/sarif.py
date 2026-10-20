@@ -234,6 +234,12 @@ def build_sarif(run_record: dict, repair_record: dict | None = None,
             "timeout_s": config.get("timeout"),
             "jobs": config.get("jobs"),
             "concurrency": config.get("concurrency"),
+            "unsigned_overflow": bool(config.get("unsigned_overflow")),
+            "nan_check": bool(config.get("nan_check")),
+            # opções que não viram flag do ESBMC, mas mudam o que foi verificado
+            "include_dirs": list(config.get("include_dirs") or []),
+            "link_unit": list(config.get("link_unit") or []),
+            "function": config.get("function") or None,
             "unwinding_assertions": config.get("unwinding_assertions"),
             "strategy": _strategy_of(config),
             "mode": _strategy_of(config),
@@ -352,8 +358,14 @@ def _esbmc_cmd_template(config: dict) -> str:
     strat = _strategy_of(config)
     parts = ["esbmc", "<arquivo.c>", "--overflow", "--memory-leak-check",
              "--multi-property", "--show-stacktrace", "--timeout", str(timeout)]
+    for d in (config.get("include_dirs") or []):
+        parts += ["-I", d]
+    if config.get("function"):
+        parts += ["--function", config["function"]]
     if config.get("unsigned_overflow"):
         parts.append("--unsigned-overflow-check")
+    if config.get("nan_check"):
+        parts.append("--nan-check")
     if strat == "incremental":
         parts.append("--incremental-bmc")
     elif strat == "kinduction":

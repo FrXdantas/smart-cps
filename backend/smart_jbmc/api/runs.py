@@ -47,6 +47,9 @@ class RunRequest(BaseModel):
     # opt-in: também checa overflow UNSIGNED (size_t/unsigned). Off por padrão —
     # wraparound unsigned é definido em C, ligar pode acusar uso intencional.
     unsigned_overflow: bool = False
+    # opt-in: `--nan-check` (ponto flutuante que gera NaN). Off por padrão, pelo
+    # mesmo motivo do unsigned: há código que produz e trata NaN de propósito.
+    nan_check: bool = False
     # include paths (-I) p/ verificar uma unidade de um projeto real cujos headers
     # não estão na pasta do alvo (ex.: ggml/include do llama.cpp). Sem buildar nada.
     include_dirs: list[str] = []

@@ -80,3 +80,94 @@ def test_race_com_codigo_identico_nao_sai_reparada(tmp_path):
     alvo = rep["result"]["targets"][0]
     assert alvo["status"] != "REPAIRED"
     assert [a["verdict"] for a in alvo["attempts"]] != ["FIX_OK"]
+
+
+# --- Incremento 1 (A e B): a run com TODAS as opções ligadas chega igual ao oráculo ---
+
+TODAS_AS_OPCOES = {
+    "folder": "/tmp/proj", "unwind": 9, "timeout": 77, "jobs": 1, "solver": "z3",
+    "strategy": "sound", "concurrency": True, "unsigned_overflow": True,
+    "nan_check": True, "include_dirs": ["/inc"], "function": "tarefa",
+}
+
+
+def test_create_repair_herda_toda_a_config_da_run(tmp_path, monkeypatch):
+    """Unwind, timeout e solver vinham da TELA no momento do reparo (padrão 5/60/
+    boolector pela API). Agora vêm da run, como as demais opções."""
+    from smart_jbmc.api import repair_store
+
+    run = {"run_id": "r1", "status": "done", "config": dict(TODAS_AS_OPCOES),
+           "result": {"targets": []}}
+    enviados = {}
+    monkeypatch.setattr(repair_store.store, "get_run", lambda rid, **kw: run)
+    monkeypatch.setattr(repair_store, "RUNS_DIR", tmp_path)
+    monkeypatch.setattr(repair_store, "get_repair", lambda rid: None)
+    monkeypatch.setattr(repair_store._executor, "submit",
+                        lambda fn, rid, alvos, opts, *a: enviados.update(opts))
+    repair_store.create_repair("r1", {"unwind": 5, "timeout": 60, "solver": "boolector",
+                                      "max_iters": 1})
+    for k in ("unwind", "timeout", "solver", "strategy", "concurrency",
+              "unsigned_overflow", "nan_check", "include_dirs", "function"):
+        assert enviados[k] == TODAS_AS_OPCOES[k], k
+
+
+def test_create_repair_run_antiga_usa_o_pedido(tmp_path, monkeypatch):
+    """Run gravada antes desta mudança, sem unwind no config: vale o pedido."""
+    from smart_jbmc.api import repair_store
+
+    run = {"run_id": "r2", "status": "done", "config": {"folder": "/x"},
+           "result": {"targets": []}}
+    enviados = {}
+    monkeypatch.setattr(repair_store.store, "get_run", lambda rid, **kw: run)
+    monkeypatch.setattr(repair_store, "RUNS_DIR", tmp_path)
+    monkeypatch.setattr(repair_store, "get_repair", lambda rid: None)
+    monkeypatch.setattr(repair_store._executor, "submit",
+                        lambda fn, rid, alvos, opts, *a: enviados.update(opts))
+    repair_store.create_repair("r2", {"unwind": 4, "timeout": 30, "solver": "boolector",
+                                      "max_iters": 1})
+    assert (enviados["unwind"], enviados["timeout"], enviados["nan_check"]) == (4, 30, False)
+
+
+def test_repair_run_leva_todas_as_opcoes_ate_o_esbmc(tmp_path, monkeypatch):
+    """Do laço de reparo até a linha do ESBMC: cada opção da run chega ao oráculo."""
+    from smart_jbmc.core.repair import loop
+
+    fonte = tmp_path / "a.c"
+    fonte.write_text("int main(){int z=0; return 1/z;}\n")
+    vistos = []
+
+    def falso_esbmc(target, **kw):
+        vistos.append(kw)
+        return ToolResult(0, "VERIFICATION SUCCESSFUL\n", "")
+
+    def conserto(**kw):
+        return {"patch": "int main(){int z=1; return 1/z;}\n", "usage": None,
+                "model": "teste", "ms": 0}
+
+    monkeypatch.setattr(regression, "run_esbmc", falso_esbmc)
+    monkeypatch.setattr("smart_jbmc.core.verifiers.solver_available", lambda s: True)
+    opc = TODAS_AS_OPCOES
+    loop.repair_run(
+        [{"status": "BUG", "source": str(fonte), "bug": "Division by Zero"}],
+        unwind=opc["unwind"], timeout=opc["timeout"], solver=opc["solver"],
+        max_iters=1, work_dir=str(tmp_path / "rep"), patch_fn=conserto,
+        unsigned_overflow=True, nan_check=True, strategy="sound",
+        concurrency=True, include_dirs=["/inc"], function="tarefa")
+    assert vistos, "o oráculo não foi chamado"
+    kw = vistos[0]
+    assert (kw["unwind"], kw["timeout"], kw["solver"]) == (9, 77, "z3")
+    assert kw["strategy"] == "sound" and kw["concurrency"] is True
+    assert kw["unsigned_overflow"] is True and kw["nan_check"] is True
+    assert kw["include_dirs"] == ["/inc"] and kw["function"] == "tarefa"
+
+
+def test_run_esbmc_nan_check_vira_flag(monkeypatch):
+    from smart_jbmc.core.verifiers import esbmc
+
+    cmds = []
+    monkeypatch.setattr(esbmc, "_require", lambda nome: nome)
+    monkeypatch.setattr(esbmc, "run_cmd", lambda cmd, **kw: cmds.append(cmd) or ToolResult(0, "", ""))
+    esbmc.run_esbmc("a.c")
+    esbmc.run_esbmc("a.c", nan_check=True)
+    assert "--nan-check" not in cmds[0]
+    assert "--nan-check" in cmds[1]

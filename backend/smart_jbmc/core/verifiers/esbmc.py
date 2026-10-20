@@ -83,7 +83,7 @@ STRATEGIES = ("bounded", "sound", "incremental", "kinduction")
 def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
               concurrency=False, solver="boolector", nice=10,
               unwinding_assertions=False, strategy=None,
-              unsigned_overflow=False, include_dirs=None, function=None,
+              unsigned_overflow=False, nan_check=False, include_dirs=None, function=None,
               max_mem_mb=None) -> ToolResult:
     """
     ESBMC com as flags do TASE2025 (CASTLE). Saída em TEXTO (ESBMC >= 8 não
@@ -130,6 +130,10 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
         cmd += ["--function", function]
     if unsigned_overflow:
         cmd.append("--unsigned-overflow-check")
+    # `--nan-check`: operação em ponto flutuante que produz NaN (0/0, inf-inf).
+    # Opt-in como o unsigned: código que trata NaN de propósito viraria alarme.
+    if nan_check:
+        cmd.append("--nan-check")
     if strategy == "incremental":
         cmd.append("--incremental-bmc")
     elif strategy == "kinduction":
