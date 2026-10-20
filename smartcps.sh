@@ -18,15 +18,19 @@ DIST="dist/smartcps-offline"
 
 construir() {
   # Usa o binário ESBMC desta máquina quando existe (paridade exata com o
-  # servidor); senão o Dockerfile baixa o release oficial 8.2.
+  # servidor); senão o Dockerfile baixa o release oficial 8.6.
+  # Um binário de outra versão em docker/vendor/ é descartado.
+  if [[ -x docker/vendor/esbmc ]] && ! docker/vendor/esbmc --version 2>/dev/null | grep -q "8.6.0"; then
+    rm -f docker/vendor/esbmc
+  fi
   if [[ ! -x docker/vendor/esbmc ]]; then
     for cand in "${ESBMC_BIN:-}" "$HOME/esbmc/bin/esbmc" "$(command -v esbmc 2>/dev/null || true)"; do
-      if [[ -n "$cand" && -x "$cand" ]] && "$cand" --version 2>/dev/null | grep -q "8.2.0"; then
+      if [[ -n "$cand" && -x "$cand" ]] && "$cand" --version 2>/dev/null | grep -q "8.6.0"; then
         cp "$(readlink -f "$cand")" docker/vendor/esbmc; echo "==> ESBMC local: $cand"; break
       fi
     done
   fi
-  [[ -x docker/vendor/esbmc ]] || echo "==> ESBMC: será baixado do GitHub (release 8.2)"
+  [[ -x docker/vendor/esbmc ]] || echo "==> ESBMC: será baixado do GitHub (release 8.6)"
   docker build --platform linux/amd64 -t "$IMAGEM" -t smartcps:latest .
   echo "✔ imagem $IMAGEM"
   docker run --rm "$IMAGEM" ferramentas

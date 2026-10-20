@@ -65,8 +65,8 @@ mkdir -p ~/opt && cd ~/opt
 # Verifique a versão mais recente em https://github.com/esbmc/esbmc/releases
 # Exemplo (ajuste a URL para a release atual):
 curl -L -o esbmc.zip \
-  https://github.com/esbmc/esbmc/releases/download/v8.2.0/ESBMC-Linux.zip
-unzip -q esbmc.zip -d esbmc
+  https://github.com/esbmc/esbmc/releases/download/v8.6/esbmc-linux.zip
+unzip -q esbmc.zip && mv release esbmc   # o zip do 8.6 traz a pasta release/
 chmod +x ~/opt/esbmc/bin/esbmc
 
 ~/opt/esbmc/bin/esbmc --version    # esperado: ESBMC version 8.x ...
@@ -718,8 +718,8 @@ sudo apt update && sudo apt install -y python3-venv build-essential curl unzip
 
 # 2. ESBMC
 mkdir -p ~/opt && cd ~/opt
-curl -L -o esbmc.zip https://github.com/esbmc/esbmc/releases/download/v8.2.0/ESBMC-Linux.zip
-unzip -q esbmc.zip -d esbmc && chmod +x ~/opt/esbmc/bin/esbmc
+curl -L -o esbmc.zip https://github.com/esbmc/esbmc/releases/download/v8.6/esbmc-linux.zip
+unzip -q esbmc.zip && mv release esbmc && chmod +x ~/opt/esbmc/bin/esbmc
 
 # 3. CBMC/JBMC
 cd /tmp

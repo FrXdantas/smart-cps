@@ -171,3 +171,16 @@ def test_run_esbmc_nan_check_vira_flag(monkeypatch):
     esbmc.run_esbmc("a.c", nan_check=True)
     assert "--nan-check" not in cmds[0]
     assert "--nan-check" in cmds[1]
+
+
+def test_run_esbmc_concorrencia_usa_sleep_sets(monkeypatch):
+    """ESBMC 8.6: busca exaustiva com conjuntos de dormência, sem limite de trocas."""
+    from smart_jbmc.core.verifiers import esbmc
+
+    cmds = []
+    monkeypatch.setattr(esbmc, "_require", lambda nome: nome)
+    monkeypatch.setattr(esbmc, "run_cmd", lambda cmd, **kw: cmds.append(cmd) or ToolResult(0, "", ""))
+    esbmc.run_esbmc("a.c", concurrency=True)
+    for flag in ("--data-races-check", "--deadlock-check", "--no-por", "--sleep-sets"):
+        assert flag in cmds[0], flag
+    assert "--context-bound" not in cmds[0]

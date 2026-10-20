@@ -182,5 +182,6 @@ def test_sarif_registra_todas_as_opcoes():
     assert props["function"] == "tarefa"
     cmd = inv["commandLine"]
     for flag in ("-I /inc", "--function tarefa", "--unsigned-overflow-check",
-                 "--nan-check", "--data-races-check"):
+                 "--nan-check", "--data-races-check", "--sleep-sets"):
         assert flag in cmd, flag
+    assert "--context-bound" not in cmd

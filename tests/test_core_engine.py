@@ -188,3 +188,29 @@ def test_jbmc_detects_array_oob():
         verdict = C.classify(res.raw)
         assert verdict.status == "BUG"
         assert verdict.bug == "Array Out Of Bounds"
+
+
+# Resumo REAL do ESBMC 8.6.0 (--multi-property, concorrência) sobre sensor_atuador.c com
+# corrida: o 8.6 lista também as propriedades APROVADAS, entre elas "array bounds" e
+# "out of bounds" do modelo de pthread. Só as linhas FAILED podem decidir a categoria.
+ESBMC_86_RESUMO_CORRIDA = """\
+** Results:
+sensor_atuador.c, function tarefa_atuador
+  PASSED       [tarefa_atuador.data-race.1]                line  15  R/W data race on c:@leitura
+  FAILED       [tarefa_atuador.data-race.3]                line  16  R/W data race on c:@amostras
+  FAILED       [tarefa_atuador.data-race.4]                line  16  W/W data race on c:@amostras
+  PASSED       [tarefa_atuador.arithmetic-overflow.2]      line  16  arithmetic overflow on add
+/esbmc-vfs/libc/library/pthread_lib.c, function pthread_create
+  PASSED       [pthread_create.object-out-of-bounds.1]     line 273  dereference failure: Access to object out of bounds
+  PASSED       [soma_notas.array-bounds-violated.1]        line  15  dereference failure: array bounds violated
+
+** 2 of 18 properties failed, 16 passed
+
+VERIFICATION FAILED
+"""
+
+
+def test_esbmc_86_resumo_classifica_so_pelas_que_falharam():
+    from smart_jbmc.core.classify import detect_bug, has_failure
+    assert has_failure(ESBMC_86_RESUMO_CORRIDA)
+    assert detect_bug(ESBMC_86_RESUMO_CORRIDA) == "Race Condition"

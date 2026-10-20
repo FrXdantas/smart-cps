@@ -75,6 +75,38 @@ def test_parse_esbmc_trace_com_stacktrace():
     assert violations[1]["condition"] == ""
 
 
+# Saída REAL do ESBMC 8.6.0 (--nan-check --multi-property --show-stacktrace): a partir
+# do 8.6 vem uma linha "CWE: ..." entre a descrição e a condição.
+ESBMC_86_CWE_SAMPLE = """\
+State 3 file nan.c line 2 column 63 function main thread 0
+----------------------------------------------------
+Violated property:
+  file nan.c line 2 column 63 function main
+Stack trace:
+  c:@F@main at file nan.c line 2 column 1
+  NaN on ieee_div
+  CWE: CWE-681
+  !(isnan(IEEE_DIV(0.000000, (float)n)))
+
+BMC program time: 0.016s
+
+VERIFICATION FAILED
+"""
+
+
+def test_parse_esbmc_86_linha_cwe_nao_vira_condicao():
+    _, violations = parse_esbmc_trace_text(ESBMC_86_CWE_SAMPLE)
+    v = violations[-1]
+    assert v["description"] == "NaN on ieee_div"
+    assert v["condition"] == "!(isnan(IEEE_DIV(0.000000, (float)n)))"
+    assert v["cwe_esbmc"] == "CWE-681"
+
+
+def test_parse_esbmc_82_sem_linha_cwe():
+    _, violations = parse_esbmc_trace_text(ESBMC_SAMPLE)
+    assert violations[-1]["cwe_esbmc"] == ""
+
+
 def test_explain_prefere_violacao_do_bug():
     """Com várias violações, a explicação ancora na do bug classificado, não na última."""
     _, violations = parse_esbmc_trace_text(ESBMC_STACKTRACE_SAMPLE)

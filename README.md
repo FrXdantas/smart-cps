@@ -1,7 +1,7 @@
 # SMART-CPS
 
 Verificação formal de código com reparo automático conferido pelo próprio verificador.
-Revisão 2.0-cps.
+Revisão 2.1-cps.
 
 Trabalho desenvolvido na disciplina PGENE601 / PPGINF554, Verificação e Síntese
 Automática de Sistemas Ciberfísicos e Embarcados (UFAM, 2026/2), sob a supervisão
@@ -78,7 +78,7 @@ Linux ou macOS:
 Windows (PowerShell, dentro da pasta do projeto):
 
 ```powershell
-docker build -t smartcps:2.0-cps .
+docker build -t smartcps:2.1-cps .
 ```
 
 ### 3. Iniciar o sistema
@@ -105,7 +105,7 @@ Docker, e o sistema roda isolado, sempre com as mesmas versões, em qualquer má
 
 Três termos aparecem com frequência:
 
-* Imagem (`smartcps:2.0-cps`): o pacote pronto, com o sistema e todas as
+* Imagem (`smartcps:2.1-cps`): o pacote pronto, com o sistema e todas as
   ferramentas. É construída uma única vez.
 * Container (`smartcps`): a imagem em execução. É ele que atende no endereço
   `localhost:8100`.

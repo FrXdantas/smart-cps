@@ -17,7 +17,7 @@ ao resultado como um `fix` (artifactChanges/replacements) — formato que IDEs
 import os
 
 from .classify import CWE_INFO
-from .verifiers.esbmc import esbmc_version
+from .verifiers.esbmc import CONCURRENCY_FLAGS, esbmc_version
 
 SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 
@@ -376,5 +376,5 @@ def _esbmc_cmd_template(config: dict) -> str:
         parts += ["--unwind", str(unwind), "--no-unwinding-assertions"]
     parts.append("--" + solver)
     if config.get("concurrency"):
-        parts += ["--data-races-check", "--deadlock-check", "--context-bound", "3"]
+        parts += CONCURRENCY_FLAGS
     return " ".join(parts)

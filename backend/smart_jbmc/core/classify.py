@@ -183,7 +183,7 @@ def has_failure(text: str) -> bool:
         return True
     if re.search(r"Violated property", text):
         return True
-    if re.search(r"(?:✗|\bX\b)\s*FAILED\s*:", text):
+    if re.search(r"(?:✗|\bX\b)\s*FAILED\s*:", text) or _ESBMC86_FAILED_RE.search(text):
         return True
     return False
 
@@ -267,6 +267,20 @@ def _failed_blob(text: str) -> str | None:
     return " ".join(chosen).lower() if chosen else None
 
 
+# Propriedades que falharam, no resumo do ESBMC com --multi-property:
+#   até o 8.2:  "✗ FAILED: 'arithmetic overflow on add' at file ..."
+#   no 8.6:     "  FAILED       [main.data-race.3]   line  16  R/W data race on ..."
+# O resumo do 8.6 lista também as que passaram (PASSED); sem casar o formato
+# novo, a classificação caía no texto inteiro e pegava uma propriedade aprovada.
+_ESBMC_FAILED_RE = re.compile(r"(?:✗|\bX\b)\s*FAILED\s*:\s*'([^']+)'")
+_ESBMC86_FAILED_RE = re.compile(r"^\s+FAILED\s+\[[^\]]+\]\s+line\s+\d+\s+(.+?)\s*$", re.M)
+
+
+def _esbmc_failed(text: str) -> list[str]:
+    """Descrições das propriedades que falharam no resumo-texto do ESBMC."""
+    return _ESBMC_FAILED_RE.findall(text) or _ESBMC86_FAILED_RE.findall(text)
+
+
 def _split_failures(text: str) -> tuple[list[str], list[str]]:
     """Separa as propriedades VIOLADAS em (reais, unwinding).
 
@@ -304,8 +318,8 @@ def _split_failures(text: str) -> tuple[list[str], list[str]]:
         if real or unwind:
             return real, unwind
 
-    # fallback texto (ESBMC): linhas '✗ FAILED: ...'
-    for m in re.findall(r"(?:✗|\bX\b)\s*FAILED\s*:\s*'([^']+)'", text):
+    # fallback texto (ESBMC): resumo das propriedades que falharam
+    for m in _esbmc_failed(text):
         (unwind if "unwinding assertion" in m.lower() else real).append(m)
     return real, unwind
 
@@ -323,7 +337,7 @@ def detect_bug(text: str) -> str:
     low = text.lower()
     blob = _failed_blob(text)
     if blob is None:
-        failed = re.findall(r"(?:✗|\bX\b)\s*FAILED\s*:\s*'([^']+)'", text)
+        failed = _esbmc_failed(text)
         blob = " ".join(failed).lower() if failed else low
 
     # MEMÓRIA — CERT MEM30/MEM31

@@ -204,11 +204,14 @@ _ESBMC_ASSIGN_RE = re.compile(
 # um bloco "Stack trace:" (uma linha "... at file ..." por quadro) entre o local
 # e a descrição. A condição pode faltar (ex.: "arithmetic overflow on add"
 # seguida de linha em branco), por isso é opcional e só vale a linha seguinte.
+# A partir do 8.6 o ESBMC imprime "CWE: CWE-681" entre a descrição e a condição;
+# essa linha é lida à parte para não tomar o lugar da condição.
 _ESBMC_VIOLATION_RE = re.compile(
     r"Violated property:\s*\n"
     r"\s+file\s+(\S+)\s+line\s+(\d+)[^\n]*\n"
     r"(?:[ \t]*Stack trace:[ \t]*\n(?:[^\n]*\bat file\b[^\n]*\n)*)?"
     r"[ \t]+([^\n]+)"
+    r"(?:\n[ \t]+CWE:[ \t]*([^\n]+))?"
     r"(?:\n[ \t]+([^\n]+))?",
 )
 
@@ -232,7 +235,8 @@ def parse_esbmc_trace_text(text: str) -> tuple[list, list]:
     for vm in _ESBMC_VIOLATION_RE.finditer(text):
         violations.append({
             "file": vm.group(1), "line": int(vm.group(2)),
-            "description": vm.group(3).strip(), "condition": (vm.group(4) or "").strip(),
+            "description": vm.group(3).strip(), "condition": (vm.group(5) or "").strip(),
+            "cwe_esbmc": (vm.group(4) or "").strip(),
         })
     return steps, violations
 

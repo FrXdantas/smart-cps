@@ -1,6 +1,6 @@
 # SMART-CPS: documentação técnica
 
-Revisão 2.0-cps. Este documento complementa o [README](../README.md) principal e
+Revisão 2.1-cps. Este documento complementa o [README](../README.md) principal e
 descreve a arquitetura, a execução sem Docker, a configuração das ferramentas e o
 ciclo de reparo.
 
@@ -170,5 +170,5 @@ Com Docker: `./subir.sh testes`. A suíte executa sem acesso à internet.
 
 ## Requisitos externos (execução sem Docker)
 
-`jbmc` (CBMC 6.9.0), `esbmc` 8.2.0, `javac` e `java` (OpenJDK 21), `kotlinc` 2.3.21,
+`jbmc` (CBMC 6.9.0), `esbmc` 8.6.0, `javac` e `java` (OpenJDK 21), `kotlinc` 2.3.21,
 `gcc` e Python 3.12. Instruções de instalação em [INSTALL.pdf](INSTALL.pdf).

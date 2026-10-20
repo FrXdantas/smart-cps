@@ -5,7 +5,7 @@ do servidor de produção**:
 
 | Ferramenta | Versão |
 |---|---|
-| ESBMC (C) | 8.2.0 — solvers boolector, z3, bitwuzla |
+| ESBMC (C) | 8.6.0 — solvers boolector, z3, bitwuzla |
 | cbmc / jbmc (Java, Kotlin) | 6.9.0 |
 | OpenJDK (javac/java) | 21 |
 | Kotlin (kotlinc) | 2.3.21 |
@@ -117,7 +117,7 @@ Na pasta do projeto (`smart-jbmc/`):
 ```
 
 Isso **constrói** a imagem (baixa cbmc 6.9.0, Kotlin 2.3.21 e, se esta máquina
-não tiver, o ESBMC 8.2) e **exporta** para `dist/smartcps-offline/`:
+não tiver, o ESBMC 8.6) e **exporta** para `dist/smartcps-offline/`:
 
 ```
 dist/smartcps-offline/
@@ -132,15 +132,15 @@ dist/smartcps-offline/
 Copie essa pasta inteira para o pendrive. Também dá para rodar em etapas:
 `./smartcps.sh construir` e depois `./smartcps.sh exportar`.
 
-Se o computador tiver o ESBMC 8.2.0 em `~/esbmc/bin/esbmc` (ou no PATH),
+Se o computador tiver o ESBMC 8.6.0 em `~/esbmc/bin/esbmc` (ou no PATH),
 o `construir` usa **esse** binário (paridade exata com o servidor). Senão, baixa
-o release oficial 8.2 do GitHub, que é a mesma versão com os mesmos solvers.
+o release oficial 8.6 do GitHub, que é a mesma versão com os mesmos solvers.
 
 ### Sem script (Docker puro)
 
 ```bash
-docker build -t smartcps:2.0-cps .
-docker run -d --name smartcps -p 8100:8000 -v smartcps-dados:/app/data smartcps:2.0-cps
+docker build -t smartcps:2.1-cps .
+docker run -d --name smartcps -p 8100:8000 -v smartcps-dados:/app/data smartcps:2.1-cps
 ```
 
 ou `docker compose up -d` (usa o `docker-compose.yml`).

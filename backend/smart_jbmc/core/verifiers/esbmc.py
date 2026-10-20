@@ -16,6 +16,14 @@ SOLVER_FLAGS = {
     "cvc": ["--cvc"],
 }
 
+# Concorrência (corrida de dados e impasse). Até a 2.0-cps (ESBMC 8.2) usava
+# `--context-bound 3`; no 8.6 o modelo de pthread gera quase o dobro de condições
+# por intercalação e a versão correta do sensor_atuador deixou de ser provada em
+# 180 s. A busca exaustiva com conjuntos de dormência (sem limite de trocas de
+# contexto, como pede o --help do 8.6) provou os 4 programas de referência em 1 a
+# 7 s e cobre todas as intercalações até o unwind. Medições em 20/10/2026.
+CONCURRENCY_FLAGS = ["--data-races-check", "--deadlock-check", "--no-por", "--sleep-sets"]
+
 # Programa mínimo p/ sondar se um solver foi REALMENTE compilado no build.
 # Não dá p/ confiar em `esbmc --help`: ele lista `--mathsat` mesmo quando o
 # solver não foi linkado — só o runtime acusa "has not been built into this
@@ -144,7 +152,7 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
         cmd += ["--unwind", str(unwind), "--no-unwinding-assertions"]
     cmd += SOLVER_FLAGS.get(solver, SOLVER_FLAGS["boolector"])
     if concurrency:
-        cmd += ["--data-races-check", "--deadlock-check", "--context-bound", "3"]
+        cmd += CONCURRENCY_FLAGS
     # `max_mem_mb` vem do orquestrador já rateado pelo `jobs`; sozinho, o
     # verificador assume que é o único rodando.
     mem = limite_memoria_mb() if max_mem_mb is None else max_mem_mb

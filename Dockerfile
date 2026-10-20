@@ -5,7 +5,7 @@
 # Traz tudo o que a verificação precisa, nas MESMAS versões do servidor de
 # produção. Paridade de versão é requisito: o parser de contraexemplo e a
 # `strategy` foram validados contra a saída destas versões.
-#   ESBMC 8.2.0 · cbmc/jbmc 6.9.0 · OpenJDK 21 · Kotlin 2.3.21 · Python 3.12
+#   ESBMC 8.6.0 · cbmc/jbmc 6.9.0 · OpenJDK 21 · Kotlin 2.3.21 · Python 3.12
 #
 # Construir (precisa de internet SÓ nesta etapa):   ./smartcps.sh construir
 # Na máquina offline:                                ./subir.sh
@@ -14,7 +14,7 @@ FROM ubuntu:24.04
 
 ARG CBMC_VERSION=6.9.0
 ARG KOTLIN_VERSION=2.3.21
-ARG ESBMC_URL=https://github.com/esbmc/esbmc/releases/download/v8.2/release-ubuntu-24.04--b.RelWithDebInfo.-e.OFF.zip
+ARG ESBMC_URL=https://github.com/esbmc/esbmc/releases/download/v8.6/esbmc-linux.zip
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -45,16 +45,17 @@ RUN curl -fsSL -o /tmp/kotlin.zip \
  && rm /tmp/kotlin.zip \
  && ln -s /opt/kotlinc/bin/kotlinc /usr/local/bin/kotlinc
 
-# --- ESBMC 8.2.0 (binário estático) ---
+# --- ESBMC 8.6.0 (binário estático) ---
 # Se docker/vendor/esbmc existir (o construir.sh copia o binário da máquina de
 # dev, garantindo o MESMO arquivo do servidor), usa ele; senão baixa o release
-# oficial 8.2 do GitHub (mesma versão e mesmos solvers: boolector, z3, bitwuzla).
+# oficial 8.6 do GitHub (mesma versão e mesmos solvers: boolector, z3, bitwuzla).
+# A revisão 2.0-cps, com o ESBMC 8.2.0, ficou congelada na imagem smartcps:2.0-cps.
 COPY docker/vendor/ /tmp/vendor/
 RUN if [ -x /tmp/vendor/esbmc ]; then \
         install -m 0755 /tmp/vendor/esbmc /usr/local/bin/esbmc; \
     else \
         curl -fsSL -o /tmp/esbmc.zip "$ESBMC_URL" \
-     && unzip -q -j /tmp/esbmc.zip bin/esbmc -d /usr/local/bin \
+     && unzip -q -j /tmp/esbmc.zip release/bin/esbmc -d /usr/local/bin \
      && chmod 0755 /usr/local/bin/esbmc \
      && rm /tmp/esbmc.zip; \
     fi \

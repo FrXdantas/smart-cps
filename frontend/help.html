@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ajuda: SMART ESBMC / JBMC rv. 2.0-cps</title>
+  <title>Ajuda: SMART ESBMC / JBMC rv. 2.1-cps</title>
   <script src="js/tema.js?v=1"></script>
   <link href="vendor/bootstrap.min.css" rel="stylesheet">
   <link href="css/styles.css?v=17" rel="stylesheet">
@@ -37,7 +37,7 @@
 
 <nav class="navbar app-bar py-2">
   <div class="container flex-wrap gap-2">
-    <a class="marca text-decoration-none" href="/">SMART ESBMC / JBMC<span class="versao">rv. 2.0-cps</span></a>
+    <a class="marca text-decoration-none" href="/">SMART ESBMC / JBMC<span class="versao">rv. 2.1-cps</span></a>
     <div class="d-flex flex-wrap align-items-center gap-2">
       <a href="/" class="btn btn-sm btn-outline-primary">Voltar ao painel</a>
       <button type="button" class="btn btn-sm btn-discreto" data-tema-btn>Tema escuro</button>
@@ -267,8 +267,8 @@ int main(void) {
         <h2>Limites conhecidos</h2>
         <ul>
           <li>SAFE vale só até o unwind escolhido. Um defeito mais fundo pode passar.</li>
-          <li>C++ com a biblioteca padrão (por exemplo, <code>std::shared_ptr</code>) não é suportado pelo
-            ESBMC 8.2. Use C ou unidades pequenas sem a STL.</li>
+          <li>Projetos C++ grandes, que usam muito a biblioteca padrão, podem não ser processados pelo
+            ESBMC. Prefira C ou unidades pequenas.</li>
           <li>A conversão para um inteiro menor que não cabe no tipo (o truncamento em ponto fixo, como em
             Q15) ainda não é detectada: em C ela não é erro para o verificador.</li>
           <li>Estouro e NaN em ponto flutuante usam a CWE-682 (cálculo incorreto), porque não existe CWE
