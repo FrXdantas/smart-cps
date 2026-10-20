@@ -84,10 +84,6 @@ body {
   font-size: .8rem;
   margin-left: .4rem;
 }
-.app-bar .subtitulo {
-  color: var(--texto-suave);
-  font-size: .82rem;
-}
 
 /* Ambiente na barra: ponto colorido antes do estado do servidor */
 .amb-status::before {
