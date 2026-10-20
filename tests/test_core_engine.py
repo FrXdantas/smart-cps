@@ -35,6 +35,11 @@ def test_cert_priority():
     ("dynamic memory leak found", "Memory Leak"),
     ("use after free of pointer p", "Use After Free"),
     ("arithmetic overflow on add", "Overflow"),
+    # direção B: textos reais do ESBMC 8.2.0 (20/10/2026)
+    ("arithmetic overflow on floating-point ieee_mul", "Float Overflow"),
+    ("arithmetic overflow on floating-point ieee_div", "Float Overflow"),
+    ("NaN on ieee_div", "Float NaN"),
+    ("fixed-point truncation: value does not fit in q15_t", "Numeric Truncation"),
 ])
 def test_detect_bug(text, expected):
     assert C.detect_bug(text) == expected

@@ -29,6 +29,28 @@ CWE_INFO = {
         "severity": "medium", "likelihood": "likely", "remediation": "medium",
         "cert_rule": "INT32-C — operações sobre inteiros com sinal não devem overflow.",
     },
+    # Direção B. O estouro em ponto flutuante caía em "Overflow"/CWE-190, que é de
+    # inteiro, e o NaN em "Unknown Failure". Não há CWE própria para nenhum dos
+    # dois; a mais próxima é a CWE-682 (cálculo incorreto), mãe da 190 e da 369.
+    # A regra CERT é que distingue os dois casos.
+    "Float Overflow": {
+        "cwe_id": "CWE-682", "cwe_name": "Incorrect Calculation", "top25_rank": None,
+        "severity": "medium", "likelihood": "probable", "remediation": "medium",
+        "cert_rule": "FLP03-C — detectar e tratar erros de ponto flutuante (estouro para infinito).",
+    },
+    "Float NaN": {
+        "cwe_id": "CWE-682", "cwe_name": "Incorrect Calculation", "top25_rank": None,
+        "severity": "medium", "likelihood": "probable", "remediation": "medium",
+        "cert_rule": "FLP32-C — prevenir erros de domínio (resultado NaN) em ponto flutuante.",
+    },
+    # O ESBMC não acusa conversão para inteiro menor (não é UB em C). Esta
+    # categoria recebe a asserção da regra de truncamento (incremento 3), cujo
+    # texto deve conter "fixed-point truncation".
+    "Numeric Truncation": {
+        "cwe_id": "CWE-197", "cwe_name": "Numeric Truncation Error", "top25_rank": None,
+        "severity": "medium", "likelihood": "probable", "remediation": "low",
+        "cert_rule": "INT31-C — conversões de inteiros não devem perder nem alterar o valor.",
+    },
     "Array Out Of Bounds": {
         "cwe_id": "CWE-125", "cwe_name": "Out-of-bounds Read", "top25_rank": 6,
         "severity": "high", "likelihood": "likely", "remediation": "medium",
@@ -98,6 +120,9 @@ def suggestion(bug: str) -> str:
         "Division by Zero": "Verifique se o denominador é diferente de zero antes da divisão/resto.",
         "Null Pointer": "Valide se a referência não é nula antes de desreferenciar.",
         "Overflow": "Use tipos maiores (Math.addExact / int64_t) ou valide limites.",
+        "Float Overflow": "Limite a faixa das entradas ou sature o resultado antes que vire infinito.",
+        "Float NaN": "Evite 0/0, inf-inf e raiz de negativo: valide o domínio antes da operação.",
+        "Numeric Truncation": "Sature o valor na faixa do tipo de destino (ex.: __SSAT) ou ajuste a escala.",
         "Array Out Of Bounds": "Valide o índice em [0, size) antes do acesso.",
         "Buffer Overflow": "Limite o tamanho da escrita com strncpy/snprintf ou verifique tamanho.",
         "Memory Leak": "Libere a memória alocada (free/delete) ao final do tempo de vida.",
@@ -335,6 +360,14 @@ def detect_bug(text: str) -> str:
     if ("division by zero" in blob or "divide-by-zero" in blob
             or "denominator should be nonzero" in blob):
         return "Division by Zero"
+    # Direção B: antes do "overflow" genérico, que pegaria o de ponto flutuante,
+    # e do "assertion", já que a regra de truncamento é uma asserção.
+    if "fixed-point truncation" in blob:
+        return "Numeric Truncation"
+    if "nan on " in blob:
+        return "Float NaN"
+    if "overflow on floating-point" in blob:
+        return "Float Overflow"
     if "overflow" in blob:
         return "Overflow"
 

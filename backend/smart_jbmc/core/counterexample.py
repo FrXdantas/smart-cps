@@ -267,6 +267,21 @@ EXPLAIN_TEMPLATES = {
         "  • Propriedade violada: INT32-C (CERT-C) / CWE-190.\n"
         "  • UB em C; wrap-around silencioso em Java."
     ),
+    "Float Overflow": (
+        "Existe uma execução em que uma operação em ponto flutuante passa do maior valor do tipo e vira infinito.\n"
+        "  • Propriedade violada: FLP03-C (CERT-C) / CWE-682.\n"
+        "  • Não é UB em C: o infinito segue no cálculo e contamina o resultado (ex.: saída do controlador)."
+    ),
+    "Float NaN": (
+        "Existe uma execução em que uma operação em ponto flutuante produz NaN (ex.: 0/0, inf-inf).\n"
+        "  • Propriedade violada: FLP32-C (CERT-C) / CWE-682.\n"
+        "  • Toda comparação com NaN dá falso, então testes de limite passam a ser ignorados."
+    ),
+    "Numeric Truncation": (
+        "Existe uma execução em que um valor é convertido para um inteiro menor sem caber nele.\n"
+        "  • Propriedade violada: INT31-C (CERT-C) / CWE-197.\n"
+        "  • Em ponto fixo (Q15/Q31), o valor volta pelo outro extremo: +1,0 vira -1,0."
+    ),
     "Memory Leak": (
         "Memória alocada (malloc/calloc/strdup) não é liberada antes de o ponteiro perder alcance.\n"
         "  • Propriedade violada: MEM31-C (CERT-C) / CWE-401.\n"
