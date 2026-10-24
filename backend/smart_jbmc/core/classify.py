@@ -274,6 +274,23 @@ def _failed_blob(text: str) -> str | None:
 # novo, a classificação caía no texto inteiro e pegava uma propriedade aprovada.
 _ESBMC_FAILED_RE = re.compile(r"(?:✗|\bX\b)\s*FAILED\s*:\s*'([^']+)'")
 _ESBMC86_FAILED_RE = re.compile(r"^\s+FAILED\s+\[[^\]]+\]\s+line\s+\d+\s+(.+?)\s*$", re.M)
+# Mesma linha, com o identificador: (identificador, descrição).
+_ESBMC86_FAILED_ID_RE = re.compile(r"^\s+FAILED\s+\[([^\]]+)\]\s+line\s+\d+\s+(.+?)\s*$", re.M)
+# Mensagens próprias do ESBMC. O 8.6 dá o identificador ".assertion." também a falhas
+# internas como "dereference failure: ...", que não são asserção do usuário.
+_MENSAGENS_DO_ESBMC = ("dereference failure", "array bounds", "arithmetic overflow",
+                       "division by zero", "invalid pointer", "same object",
+                       "nan on", "memory leak", "forgotten memory", "unwinding assertion",
+                       "data race", "deadlock")
+
+
+def _assercao_do_usuario(text: str) -> bool:
+    """Asserção do usuário com mensagem própria (sem a palavra "assertion"), pelo
+    identificador ".assertion." do resumo do ESBMC 8.6 (caso FreeRTOS #1236)."""
+    for ident, desc in _ESBMC86_FAILED_ID_RE.findall(text):
+        if ".assertion." in ident and not desc.lower().startswith(_MENSAGENS_DO_ESBMC):
+            return True
+    return False
 
 
 def _esbmc_failed(text: str) -> list[str]:
@@ -395,6 +412,9 @@ def detect_bug(text: str) -> str:
     # é o que `require()`/`check()` do Kotlin produzem.
     if "uncaught exception" in blob:
         return "Uncaught Exception"
+
+    if _assercao_do_usuario(text):
+        return "Assertion Failure"
 
     return "Unknown Failure"
 
