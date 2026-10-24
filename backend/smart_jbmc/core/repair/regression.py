@@ -11,7 +11,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 
-from ..classify import detect_bug, has_error, has_failure
+from ..classify import detect_bug, esbmc_timed_out, has_error, has_failure
 from ..compiler import compile_java, compile_kotlin
 from ..constants import C_FAMILY_EXTS
 from ..stubs import ensure_stubs
@@ -185,7 +185,7 @@ def regression_check(fixed_path: str, original_bug: str, unwind: int, timeout: i
 
     if comp_err:
         return RegressionResult("ERROR", reason=comp_err, elapsed_s=elapsed, raw=comp_err)
-    if "TIMEOUT:" in raw:
+    if "TIMEOUT:" in raw or (esbmc_timed_out(raw) and not has_failure(raw)):
         return RegressionResult("TIMEOUT", elapsed_s=elapsed, raw=raw)
     if has_error(raw):
         diag = _extract_diagnostics(raw) or "erro do verificador"

@@ -188,6 +188,12 @@ def has_failure(text: str) -> bool:
     return False
 
 
+def esbmc_timed_out(text: str) -> bool:
+    """O próprio ESBMC estourou o --timeout ("ERROR: Timed out"). Antes saía ERROR,
+    e só o corte externo ("TIMEOUT:") virava TIMEOUT (caso FreeRTOS #1236)."""
+    return re.search(r"^ERROR: Timed out", text, re.M) is not None
+
+
 def has_error(text: str) -> bool:
     """Erro do verificador (flag inválida, parse error) — distinto de falha."""
     if re.search(r"^ERROR:", text, re.M):
@@ -466,6 +472,8 @@ def classify(raw_text: str, obj=None) -> Verdict:
         status = "TIMEOUT"
     elif bug:
         status = "BUG"
+    elif esbmc_timed_out(raw_text):   # defeito achado antes do tempo continua BUG
+        status = "TIMEOUT"
     elif errored:
         status = "ERROR"
     elif unwind or unknown_verdict:   # bound insuficiente ou inconclusão explícita
