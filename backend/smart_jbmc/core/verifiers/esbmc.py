@@ -24,6 +24,14 @@ SOLVER_FLAGS = {
 # 7 s e cobre todas as intercalações até o unwind. Medições em 20/10/2026.
 CONCURRENCY_FLAGS = ["--data-races-check", "--deadlock-check", "--no-por", "--sleep-sets"]
 
+
+def property_flags(concurrency: bool) -> list[str]:
+    """`--multi-property` só sem concorrência. Com threads, o ESBMC 8.6 procura todas
+    as propriedades em todas as intercalações: o caso FreeRTOS #1236 estourou 10 GB e
+    180 s, e o PASSED nesse modo só vale para as intercalações que ele percorreu.
+    Sem a opção, o ESBMC para no primeiro defeito (só ele aparece no relatório)."""
+    return [] if concurrency else ["--multi-property"]
+
 # Programa mínimo p/ sondar se um solver foi REALMENTE compilado no build.
 # Não dá p/ confiar em `esbmc --help`: ele lista `--mathsat` mesmo quando o
 # solver não foi linkado — só o runtime acusa "has not been built into this
@@ -121,7 +129,7 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
         _require("esbmc"), *files,
         "--overflow",
         "--memory-leak-check",
-        "--multi-property",
+        *property_flags(concurrency),
         "--show-stacktrace",
         "--timeout", str(timeout),
     ]

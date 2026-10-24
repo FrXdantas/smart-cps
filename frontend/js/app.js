@@ -252,6 +252,9 @@ function renderResults(rec) {
   // A identificação da run fica no Histórico (linha marcada); aqui só o aviso
   // de run cancelada, porque os números abaixo são parciais.
   document.getElementById("results-header").classList.toggle("d-none", rec.status !== "cancelled");
+  // com concorrência o ESBMC roda sem --multi-property (ver core/verifiers/esbmc.py)
+  document.getElementById("aviso-primeiro-defeito")
+    .classList.toggle("d-none", !(rec.config && rec.config.concurrency));
 
   const s = result.summary || {};
   const m = result.metrics || {};
