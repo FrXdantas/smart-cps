@@ -194,8 +194,11 @@ _ESBMC_STATE_RE = re.compile(
     r"\s+function\s+(\S+)\s+thread\s+\d+\s*\n"
     r"-{5,}\s*\n"
     r"(.*?)"
-    r"(?=\nState\s+\d+\s+file|\nViolated property:|\nVERIFICATION|\Z)",
-    re.S,
+    # Âncoras de início de linha (re.M), não "\n...": no 8.6 o estado final pode vir
+    # sem atribuições, com "Violated property:" logo após os traços, e o corpo ia até
+    # o fim da saída, engolindo o resumo "** Results:" (caso FreeRTOS #1236).
+    r"(?=^State\s+\d+\s+file|^Violated property:|^\*\* Results:|^VERIFICATION|\Z)",
+    re.S | re.M,
 )
 _ESBMC_ASSIGN_RE = re.compile(
     r"^\s+([^=\n]+?)\s*=\s*(.+?)(?:\s+\([01\s]+\))?\s*$", re.M
