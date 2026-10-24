@@ -229,7 +229,14 @@ def extract_diagnostics(raw: str, max_lines: int = 15, max_chars: int = 1000) ->
             keep.append(line.rstrip())
     if not keep:  # fallback: últimas linhas não vazias
         keep = [ln.rstrip() for ln in raw.splitlines() if ln.strip()][-max_lines:]
-    return "\n".join(keep[:max_lines])[:max_chars].strip()
+    # o ESBMC repete a mesma linha a cada tentativa do solver: cada uma uma vez só
+    keep = list(dict.fromkeys(keep))
+    diag = "\n".join(keep[:max_lines])[:max_chars].strip()
+    if "out of memory" in raw.lower():
+        diag += ("\n\nFaltou memória para o verificador. Reduza os jobs (a memória é "
+                 "dividida entre eles), o unwind, ou desligue opções caras como a "
+                 "checagem de concorrência.")
+    return diag
 
 
 def _failed_blob(text: str) -> str | None:

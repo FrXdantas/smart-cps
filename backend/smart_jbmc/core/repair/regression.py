@@ -135,6 +135,7 @@ def _extract_diagnostics(raw: str, max_lines: int = 15, max_chars: int = 1000) -
             keep.append(line.rstrip())
     if not keep:  # fallback: últimas linhas não vazias da saída
         keep = [ln.rstrip() for ln in raw.splitlines() if ln.strip()][-max_lines:]
+    keep = list(dict.fromkeys(keep))   # o ESBMC repete a mesma linha várias vezes
     return "\n".join(keep[:max_lines])[:max_chars].strip()
 
 
