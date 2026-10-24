@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ajuda: SMART ESBMC / JBMC rv. 2.2-cps</title>
+  <title>Ajuda: SMART ESBMC / JBMC rv. 2.3-cps</title>
   <script src="js/tema.js?v=1"></script>
   <link href="vendor/bootstrap.min.css" rel="stylesheet">
   <link href="css/styles.css?v=17" rel="stylesheet">
@@ -37,7 +37,7 @@
 
 <nav class="navbar app-bar py-2">
   <div class="container flex-wrap gap-2">
-    <a class="marca text-decoration-none" href="/">SMART ESBMC / JBMC<span class="versao">rv. 2.2-cps</span></a>
+    <a class="marca text-decoration-none" href="/">SMART ESBMC / JBMC<span class="versao">rv. 2.3-cps</span></a>
     <div class="d-flex flex-wrap align-items-center gap-2">
       <a href="/" class="btn btn-sm btn-outline-primary">Voltar ao painel</a>
       <button type="button" class="btn btn-sm btn-discreto" data-tema-btn>Tema escuro</button>
@@ -170,7 +170,8 @@ int main(void) {
                 (CWE-190), como em cálculo de tamanho de alocação. O estouro com sinal é sempre verificado.
                 Fica desligado porque muito código usa a volta do unsigned de propósito (hash, buffer circular).</li>
               <li><strong>Concorrência</strong>: procura corrida de dados (CWE-362) e impasse (CWE-833) entre
-                threads <code>pthread</code>. Deixa a verificação bem mais lenta.</li>
+                threads <code>pthread</code>. Deixa a verificação bem mais lenta. Com ela ligada, o ESBMC
+                para no primeiro defeito de cada arquivo, então só ele aparece no relatório.</li>
               <li><strong>NaN em ponto flutuante</strong>: acusa operações que geram NaN, como 0/0 ou
                 infinito menos infinito (CWE-682, regra FLP32-C).</li>
             </ul></dd>

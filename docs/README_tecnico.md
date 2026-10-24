@@ -1,6 +1,6 @@
 # SMART-CPS: documentação técnica
 
-Revisão 2.2-cps. Este documento complementa o [README](../README.md) principal e
+Revisão 2.3-cps. Este documento complementa o [README](../README.md) principal e
 descreve a arquitetura, a execução sem Docker, a configuração das ferramentas e o
 ciclo de reparo.
 
