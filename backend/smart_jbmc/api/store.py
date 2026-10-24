@@ -69,9 +69,10 @@ def create_run(config: dict, owner_id: int, owner_login: str) -> dict:
 def _execute(run_id: str, config: dict) -> None:
     record = get_run(run_id)
 
-    def _progress(phase, done, total):
+    def _progress(phase, done, total, current=()):
         with _lock:
-            record["progress"] = {"phase": phase, "done": done, "total": total}
+            record["progress"] = {"phase": phase, "done": done, "total": total,
+                                  "current": list(current)}
 
     try:
         build_root = str(RUNS_DIR / run_id / "build")
@@ -85,6 +86,7 @@ def _execute(run_id: str, config: dict) -> None:
             nan_check=config.get("nan_check", False),
             include_dirs=config.get("include_dirs") or None,
             link_unit=config.get("link_unit") or None,
+            files=config.get("files") or None,
             function=config.get("function") or None,
             on_progress=_progress, should_cancel=lambda: is_cancelled(run_id),
         )

@@ -61,6 +61,8 @@ class RunRequest(BaseModel):
     # os argumentos HAVOCADOS (nondet) pelo ESBMC — dispensa escrever um main().
     # Permite checar uma função isolada sem corpo de chamador. Vazio = main padrão.
     function: str = ""
+    # arquivos escolhidos no pop-up de envio (relativos à pasta). Vazio = todos.
+    files: list[str] = []
 
 
 @router.get("/solvers")

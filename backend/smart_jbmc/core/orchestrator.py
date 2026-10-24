@@ -5,6 +5,7 @@ métricas (CASTLE + distribuição CWE). Devolve um RunResult serializável.
 """
 
 import os
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -157,20 +158,40 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
                      concurrency=False, build_root="build_verify",
                      unwinding_assertions=False, strategy=None,
                      unsigned_overflow=False, nan_check=False, include_dirs=None,
-                     link_unit=None,
+                     link_unit=None, files=None,
                      function=None, on_progress=None, should_cancel=None) -> RunResult:
-    """Roda a verificação. `on_progress(phase, done, total)` é chamado ao longo
-    das fases (scanning / compiling / verifying / done) para feedback visual.
+    """Roda a verificação. `on_progress(phase, done, total, current)` é chamado ao
+    longo das fases (scanning / compiling / verifying / done) para feedback visual;
+    `current` são os arquivos em verificação naquele momento (relativos à pasta).
+    `files` (relativos à pasta) restringe a run aos arquivos escolhidos na tela.
     `should_cancel()` (opcional) é consultado entre alvos: se True, para cedo e
     devolve resultados PARCIAIS com `cancelled=True` (cancelamento cooperativo)."""
     t0 = time.perf_counter()
 
+    em_curso: list[str] = []          # arquivos em verificação agora
+    lock_curso = threading.Lock()
+    estado = {"phase": "scanning", "done": 0, "total": 0}
+
     def _cb(phase, done, total):
+        estado.update(phase=phase, done=done, total=total)
         if on_progress:
+            with lock_curso:
+                atuais = list(em_curso)
             try:
-                on_progress(phase, done, total)
+                on_progress(phase, done, total, atuais)
             except Exception:  # noqa: BLE001 — progresso nunca derruba a run
                 pass
+
+    def _rel(path) -> str:
+        try:
+            return os.path.relpath(path, folder)
+        except ValueError:
+            return os.path.basename(path)
+
+    def _em_verificacao(nome, ativo):
+        with lock_curso:
+            (em_curso.append if ativo else em_curso.remove)(nome)
+        _cb(estado["phase"], estado["done"], estado["total"])
 
     def _cancelled() -> bool:
         return bool(should_cancel and should_cancel())
@@ -178,6 +199,13 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
     warnings: list[str] = []
     _cb("scanning", 0, 0)
     java, kt, c = scanner.scan(folder)
+    if files:
+        # só os arquivos marcados no pop-up de envio (caminhos relativos à pasta)
+        escolhidos = {os.path.normpath(os.path.join(folder, f)) for f in files}
+        java, kt, c = ([p for p in lista if os.path.normpath(p) in escolhidos]
+                       for lista in (java, kt, c))
+        if not (java or kt or c):
+            warnings.append("nenhum dos arquivos escolhidos foi encontrado na pasta")
 
     # Unidade multi-arquivo: linka vários .c (`main` + deps) num ÚNICO alvo ESBMC
     # em vez de um-por-arquivo (que havocaria as deps). Necessário p/ achar bug em
@@ -215,6 +243,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         "concurrency": concurrency, "strategy": strategy,
         "unwinding_assertions": (strategy == "sound"),
         "unsigned_overflow": unsigned_overflow, "nan_check": nan_check,
+        "files": list(files or []),
     }
     _cb("compiling", 0, 0)
     stubs_cp = stubs.ensure_stubs()   # classpath p/ APIs SV-COMP/CProver (ou None)
@@ -270,19 +299,28 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
     def do_jbmc(spec):
         cls, classpath, src, unit_files = spec
         t = time.perf_counter()
-        res = run_jbmc(cls, classpath=classpath, unwind=unwind, timeout=timeout,
-                       strategy=strategy, max_mem_mb=mem_por_processo)
+        nome = _rel(src) if src else cls
+        _em_verificacao(nome, True)
+        try:
+            res = run_jbmc(cls, classpath=classpath, unwind=unwind, timeout=timeout,
+                           strategy=strategy, max_mem_mb=mem_por_processo)
+        finally:
+            _em_verificacao(nome, False)
         return _build_target("jbmc", cls, src, res.raw, classify.safe_json(res.raw),
                              round(time.perf_counter() - t, 3),
                              unit_sources=unit_files)
 
     def do_esbmc(cfile):
         t = time.perf_counter()
-        res = run_esbmc(cfile, unwind=unwind, timeout=timeout,
-                        concurrency=concurrency, solver=solver,
-                        strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
-                        include_dirs=include_dirs, function=function,
-                        max_mem_mb=mem_por_processo)
+        _em_verificacao(_rel(cfile), True)
+        try:
+            res = run_esbmc(cfile, unwind=unwind, timeout=timeout,
+                            concurrency=concurrency, solver=solver,
+                            strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
+                            include_dirs=include_dirs, function=function,
+                            max_mem_mb=mem_por_processo)
+        finally:
+            _em_verificacao(_rel(cfile), False)
         return _build_target("esbmc", os.path.basename(cfile), cfile, res.raw, None,
                              round(time.perf_counter() - t, 3))
 
@@ -290,12 +328,16 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         # Verifica `files` como UMA unidade linkada (multi-arquivo). O alvo é
         # rotulado pelos basenames; o `source` é o 1º arquivo (a entrada/`main`).
         t = time.perf_counter()
-        res = run_esbmc(files, unwind=unwind, timeout=timeout,
-                        concurrency=concurrency, solver=solver,
-                        strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
-                        include_dirs=include_dirs, function=function,
-                        max_mem_mb=mem_por_processo)
         label = " + ".join(os.path.basename(f) for f in files)
+        _em_verificacao(label, True)
+        try:
+            res = run_esbmc(files, unwind=unwind, timeout=timeout,
+                            concurrency=concurrency, solver=solver,
+                            strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
+                            include_dirs=include_dirs, function=function,
+                            max_mem_mb=mem_por_processo)
+        finally:
+            _em_verificacao(label, False)
         return _build_target("esbmc", label, files[0], res.raw, None,
                              round(time.perf_counter() - t, 3),
                              unit_sources=list(files))

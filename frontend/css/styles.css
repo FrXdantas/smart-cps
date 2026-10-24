@@ -212,6 +212,16 @@ body {
 .resumo-item .rotulo { font-size: .8rem; color: var(--texto-suave); }
 
 .settings-dialog-largo { max-width: 560px; }
+/* Lista de arquivos do pop-up de envio */
+.envio-lista {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--borda);
+  border-radius: .4rem;
+  padding: .4rem .6rem;
+}
+.envio-lista .form-check { margin-bottom: .2rem; }
+.envio-lista code { font-size: .85rem; }
 
 .border-dashed {
   border: 1px dashed var(--borda) !important;

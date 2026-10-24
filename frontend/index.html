@@ -66,16 +66,11 @@
             <!-- input invisível usado pelo botão "Enviar pasta" -->
             <input type="file" id="folder-picker" webkitdirectory directory multiple class="d-none">
 
-            <!-- progresso do upload -->
-            <div id="upload-progress" class="mt-2 d-none">
-              <div class="d-flex justify-content-between small mb-1">
-                <span>Enviando pasta…</span>
-                <span><span id="upload-pct">0</span>% · <span id="upload-meta" class="text-muted"></span></span>
-              </div>
-              <div class="progress" style="height:8px">
-                <div id="upload-bar" class="progress-bar" role="progressbar" style="width:0%"></div>
-              </div>
-            </div>
+            <!-- arquivos escolhidos no pop-up de envio -->
+            <small id="selecao-resumo" class="d-block mt-1 text-body-secondary d-none">
+              <span id="selecao-texto"></span> ·
+              <a href="#" id="selecao-alterar">alterar</a>
+            </small>
           </div>
 
           <!-- 2) Estratégia ao lado de checar overflow unsigned -->
@@ -169,6 +164,7 @@
           <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
                id="progress-bar" style="width: 0%;">0%</div>
         </div>
+        <div class="small text-body-secondary mt-2 text-truncate" id="progress-current"></div>
       </div>
     </div>
 
@@ -376,6 +372,39 @@
       <div class="card-footer d-flex justify-content-between">
         <button class="btn btn-sm btn-discreto" id="cfg-clear">Limpar</button>
         <button class="btn btn-sm btn-primary" id="cfg-save">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Envio da pasta (pop-up): progresso e escolha dos arquivos ===== -->
+  <div id="envio-overlay" class="settings-overlay d-none">
+    <div class="settings-dialog settings-dialog-largo card shadow-lg">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Enviar pasta</span>
+        <button type="button" class="btn-close" id="envio-close" aria-label="Fechar"></button>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="envio-fase">Enviando pasta…</span>
+          <span><span id="upload-pct">0</span>% · <span id="upload-meta" class="text-muted"></span></span>
+        </div>
+        <div class="progress mb-3" style="height:8px">
+          <div id="upload-bar" class="progress-bar" role="progressbar" style="width:0%"></div>
+        </div>
+        <div id="envio-escolha" class="d-none">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small fw-semibold">Arquivos a verificar</span>
+            <span class="small">
+              <a href="#" id="envio-todos">marcar todos</a> ·
+              <a href="#" id="envio-nenhum">desmarcar todos</a>
+            </span>
+          </div>
+          <div id="envio-lista" class="envio-lista"></div>
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <small class="text-body-secondary" id="envio-contagem"></small>
+        <button class="btn btn-sm btn-primary" id="envio-ok" disabled>Concluir</button>
       </div>
     </div>
   </div>

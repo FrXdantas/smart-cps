@@ -107,6 +107,9 @@ function updateProgressText(rec) {
   let meta = `${elapsed}s`;
   if (pr.phase === "verifying" && pr.total > 0) meta = `${pr.done}/${pr.total} alvos · ${elapsed}s`;
   document.getElementById("progress-meta").textContent = meta;
+  const atuais = pr.current || [];
+  document.getElementById("progress-current").textContent =
+    atuais.length ? "Verificando: " + atuais.join(", ") : "";
 }
 
 // Pasta enviada por upload: o campo EXIBE o rótulo ("ana/QuixBugs") e guarda o
@@ -115,6 +118,53 @@ function updateProgressText(rec) {
 function folderValue() {
   const el = document.getElementById("f-folder");
   return (el.dataset.real || el.value).trim();
+}
+
+// Pasta enviada e arquivos marcados no pop-up de envio. Vale só para essa pasta:
+// digitar outra no campo descarta a escolha.
+let envio = null;   // { folder, arquivos: [relativos], marcados: Set }
+
+function resumoSelecao() {
+  const el = document.getElementById("selecao-resumo");
+  if (!envio) { el.classList.add("d-none"); return; }
+  const n = envio.marcados.size, total = envio.arquivos.length;
+  document.getElementById("selecao-texto").textContent =
+    n === total ? `${total} arquivo(s), todos marcados` : `${n} de ${total} arquivos marcados`;
+  el.classList.remove("d-none");
+}
+
+function renderListaEnvio() {
+  const lista = document.getElementById("envio-lista");
+  lista.innerHTML = envio.arquivos.map((rel, i) => `
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="envio-arq-${i}" data-rel="${escapeHtml(rel)}"
+             ${envio.marcados.has(rel) ? "checked" : ""}>
+      <label class="form-check-label" for="envio-arq-${i}"><code>${escapeHtml(rel)}</code></label>
+    </div>`).join("");
+  lista.querySelectorAll("input").forEach(cb => cb.addEventListener("change", () => {
+    if (cb.checked) envio.marcados.add(cb.dataset.rel); else envio.marcados.delete(cb.dataset.rel);
+    contagemEnvio();
+  }));
+  contagemEnvio();
+}
+
+function contagemEnvio() {
+  const n = envio ? envio.marcados.size : 0;
+  document.getElementById("envio-contagem").textContent =
+    envio ? `${n} de ${envio.arquivos.length} marcados` : "";
+  document.getElementById("envio-ok").disabled = !envio || n === 0;
+}
+
+function marcarTodos(sim) {
+  if (!envio) return;
+  envio.marcados = new Set(sim ? envio.arquivos : []);
+  renderListaEnvio();
+}
+
+function abrirEnvio() { document.getElementById("envio-overlay").classList.remove("d-none"); }
+function fecharEnvio() {
+  document.getElementById("envio-overlay").classList.add("d-none");
+  resumoSelecao();
 }
 
 function setFolder(path, label) {
@@ -151,6 +201,15 @@ async function launchRun(ev) {
   if (includeDirs.length) cfg.include_dirs = includeDirs;
   if (linkUnit.length) cfg.link_unit = linkUnit;
   if (fn) cfg.function = fn;
+  if (envio && envio.folder === cfg.folder) {
+    if (!envio.marcados.size) {
+      document.getElementById("form-error").textContent = "Marque ao menos um arquivo (Enviar pasta).";
+      resetButton();
+      return;
+    }
+    // só manda a lista quando nem todos estão marcados: vazio = todos, como antes
+    if (envio.marcados.size < envio.arquivos.length) cfg.files = [...envio.marcados];
+  }
   try {
     const { id } = await api.createRun(cfg);
     startRun(id);
@@ -832,11 +891,14 @@ async function uploadPickedFolder(ev) {
     total += f.size;
   });
 
-  const wrap = document.getElementById("upload-progress");
   const bar  = document.getElementById("upload-bar");
   const pct  = document.getElementById("upload-pct");
   const meta = document.getElementById("upload-meta");
-  wrap.classList.remove("d-none");
+  envio = null;
+  document.getElementById("envio-escolha").classList.add("d-none");
+  document.getElementById("envio-fase").textContent = "Enviando pasta…";
+  contagemEnvio();
+  abrirEnvio();
   bar.style.width = "0%"; pct.textContent = "0";
   meta.textContent = `${picked.length} arquivos · ${fmtBytes(total)} · pasta "${rootName}"`;
 
@@ -862,9 +924,15 @@ async function uploadPickedFolder(ev) {
     });
     setFolder(data.folder, data.label || rootName);
     meta.innerHTML =
-      `<span class="text-success">${data.count} arquivos · ${fmtBytes(data.total_bytes)}</span> · <code>${data.label || rootName}</code>`;
+      `<span class="text-success">${data.count} arquivos · ${fmtBytes(data.total_bytes)}</span> · <code>${escapeHtml(data.label || rootName)}</code>`;
+    // a escolha usa os caminhos relativos enviados, que são os mesmos dentro da pasta no servidor
+    const arquivos = picked.map(f => f.webkitRelativePath || f.name).sort();
+    envio = { folder: data.folder, arquivos, marcados: new Set(arquivos) };
+    document.getElementById("envio-fase").textContent = "Pasta enviada";
+    document.getElementById("envio-escolha").classList.remove("d-none");
+    renderListaEnvio();
   } catch (e) {
-    wrap.classList.add("d-none");
+    fecharEnvio();
     alert("Falha no upload: " + e.message);
   } finally {
     input.value = ""; // permite re-selecionar a mesma pasta depois
@@ -1092,6 +1160,16 @@ function init() {
   // digitou/colou um caminho à mão: o rótulo do upload não vale mais
   document.getElementById("f-folder").addEventListener("input", (e) => {
     delete e.currentTarget.dataset.real;
+    envio = null;
+    resumoSelecao();
+  });
+  document.getElementById("envio-ok").addEventListener("click", fecharEnvio);
+  document.getElementById("envio-close").addEventListener("click", fecharEnvio);
+  document.getElementById("envio-todos").addEventListener("click", (e) => { e.preventDefault(); marcarTodos(true); });
+  document.getElementById("envio-nenhum").addEventListener("click", (e) => { e.preventDefault(); marcarTodos(false); });
+  document.getElementById("selecao-alterar").addEventListener("click", (e) => {
+    e.preventDefault();
+    if (envio) { renderListaEnvio(); abrirEnvio(); }
   });
 
   // Histórico recolhível; a escolha fica neste navegador
