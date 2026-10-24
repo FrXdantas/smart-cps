@@ -54,7 +54,6 @@ const api = {
   listRuns: () => jget("/runs"),
   deleteRun: (id) => jdelete("/runs/" + id),
   cancelRun: (id) => jpost("/runs/" + id + "/cancel", {}),
-  browse: (path) => jget("/browse" + (path ? "?path=" + encodeURIComponent(path) : "")),
   createRepair: (cfg) => jpost("/repair", cfg),
   getRepair: (runId) => jget("/repair/" + runId),
   cancelRepair: (runId) => jpost("/repair/" + runId + "/cancel", {}),

@@ -119,7 +119,9 @@ def _modelo_do_reparo(run_id: str) -> dict | None:
 
     Lido do `repair.json`: o nome devolvido pela API em cada tentativa vale mais
     que o pedido, que pode vir vazio (padrão do servidor). `local` diz se rodou
-    na própria máquina (Ollama) ou num provedor pela internet. Sem reparo, None.
+    na própria máquina (Ollama) ou num provedor pela internet. `at` é a data do
+    último reparo (fim, ou início se ainda roda): o histórico mostra a run com a
+    data de criação, e um reparo feito dias depois ficava sem data. Sem reparo, None.
     """
     p = RUNS_DIR / run_id / "repair.json"
     if not p.is_file():
@@ -129,16 +131,17 @@ def _modelo_do_reparo(run_id: str) -> dict | None:
     except Exception:  # noqa: BLE001 — histórico não quebra por um arquivo ruim
         return None
     opts = rep.get("options") or {}
+    at = rep.get("finished_at") or rep.get("created_at")
     if opts.get("dry_run"):
-        return {"model": "dry-run", "local": True}
+        return {"model": "dry-run", "local": True, "at": at}
     base = (opts.get("base_url") or "").lower()
     local = opts.get("provider") == "local" or any(
         h in base for h in ("localhost", "127.0.0.1", "host.docker.internal", ":11434"))
     for t in (rep.get("result") or {}).get("targets") or []:
         for a in t.get("attempts") or []:
             if a.get("model") and a["model"] != "?":
-                return {"model": a["model"], "local": local}
-    return {"model": opts["model"], "local": local} if opts.get("model") else None
+                return {"model": a["model"], "local": local, "at": at}
+    return {"model": opts["model"], "local": local, "at": at} if opts.get("model") else None
 
 
 def _brief(rec: dict) -> dict:

@@ -75,7 +75,6 @@ let displayedPct = 0;
 let targetPct = 0;
 let startTime = 0;
 let currentRunId = null;       // run exibida no painel de resultados
-let browserPath = null;
 
 // ---------------- progresso ----------------
 function setTarget(rec) {
@@ -112,7 +111,7 @@ function updateProgressText(rec) {
 
 // Pasta enviada por upload: o campo EXIBE o rótulo ("ana/QuixBugs") e guarda o
 // caminho real do servidor em dataset.real — é esse que vai para a API. Pasta
-// digitada ou escolhida no Browse não tem rótulo: vale o que está no campo.
+// digitada à mão não tem rótulo: vale o que está no campo.
 function folderValue() {
   const el = document.getElementById("f-folder");
   return (el.dataset.real || el.value).trim();
@@ -386,9 +385,8 @@ async function launchRepair() {
   const cfg = loadLLMConfig();
   // 'local' (Ollama no servidor) NÃO usa api_key. Para os demais providers, exige.
   const isLocal = cfg.provider === "local";
-  // O servidor pode ter chave no .env (fallback): nesse caso NÃO exigir chave do
-  // usuário — é o que mantém o reparo disponível para todos os logados.
-  const needsKey = !dryRun && !isLocal && !cfg.api_key && !serverLLM.configured;
+  // A chave é de cada usuário: o servidor não tem chave própria para emprestar.
+  const needsKey = !dryRun && !isLocal && !cfg.api_key;
   if (needsKey) {
     const hint = document.getElementById("repair-hint");
     hint.classList.remove("d-none");
@@ -640,7 +638,8 @@ async function loadHistory() {
       return `<li class="list-group-item history-item hist-linha" data-id="${r.id}"
                   title="${escapeHtml(r.folder_label || "")}">
         <code class="hist-run">${r.id}</code>
-        <span class="hist-data">${fmtDataHora(r.created_at)}</span>
+        <span class="hist-data">${fmtDataHora(r.created_at)}${rm && rm.at
+          ? `<br><span class="hist-reparo">reparo ${fmtDataHora(rm.at)}</span>` : ""}</span>
         <span class="hist-tipo">${tipo}</span>
         <span class="hist-llm text-truncate">${llm}</span>
         <button type="button" class="btn btn-sm btn-link p-0 history-del"
@@ -725,52 +724,7 @@ async function reconnectActive() {
   }
 }
 
-// ---------------- navegador de pastas ----------------
-async function openBrowser() {
-  const card = document.getElementById("browser");
-  if (!card.classList.contains("d-none")) { card.classList.add("d-none"); return; }
-  const start = folderValue() || null;
-  card.classList.remove("d-none");
-  await browseTo(start);
-}
-
-async function browseTo(path) {
-  let data;
-  try {
-    data = await api.browse(path);
-  } catch (e) {
-    document.getElementById("browser-list").innerHTML =
-      `<div class="text-danger small p-2">${e.message}</div>`;
-    return;
-  }
-  browserPath = data.path;
-  document.getElementById("browser-path").textContent = data.path;
-  document.getElementById("browser-up").disabled = !data.parent;
-  document.getElementById("browser-src").textContent =
-    data.source_files ? `${data.source_files}${data.source_capped ? "+" : ""} fonte(s)` : "—";
-  const list = document.getElementById("browser-list");
-  list.innerHTML = data.dirs.length
-    ? data.dirs.map(d => `<button type="button" class="list-group-item list-group-item-action py-1 browser-dir" data-name="${d}">
-         ${d}</button>`).join("")
-    : '<div class="text-muted small p-2">Sem subpastas.</div>';
-  list.querySelectorAll(".browser-dir").forEach(b =>
-    b.addEventListener("click", () => browseTo(joinPath(browserPath, b.dataset.name))));
-  document.getElementById("browser-up").dataset.parent = data.parent || "";
-}
-
-function joinPath(base, name) {
-  return base.endsWith("/") ? base + name : base + "/" + name;
-}
-
-function pickFolder() {
-  setFolder(browserPath, null);
-  document.getElementById("browser").classList.add("d-none");
-}
-
 // ---------------- ambiente (health) ----------------
-// LLM de reparo configurada no SERVIDOR (.env). Preenchido por loadHealth().
-let serverLLM = { configured: false, model: null };
-
 // Barra superior: servidor no ar, cada ferramenta em verde (pronta) ou vermelho
 // (ausente; a ausência silenciosa foi o que mascarou o MathSAT) e a RAM da
 // máquina, que sobe rápido quando o ESBMC prova código com threads.
@@ -816,7 +770,6 @@ async function loadHealth() {
       renderRam(null);
       return;
     }
-    serverLLM = d.llm || { configured: false, model: null };
     updateRepairBadge();
     st.className = "amb-status tom-bom";
     st.textContent = "online";
@@ -953,11 +906,7 @@ function updateRepairBadge() {
   if (dry && dry.checked) { badge.textContent = "dry-run"; return; }
   const cfg = loadLLMConfig();
   if (cfg.model) { badge.textContent = `${cfg.provider || "custom"} · ${cfg.model}`; return; }
-  // Sem config no navegador: se o servidor tem chave no .env, é ela que vai ser
-  // usada — mostrar isso em vez de pedir configuração que não é necessária.
-  badge.textContent = serverLLM.configured
-    ? `servidor · ${serverLLM.model || "deepseek"}`
-    : "configurar LLM";
+  badge.textContent = "configurar LLM";
 }
 
 function fillModelSuggestions(provider) {
@@ -1140,11 +1089,6 @@ function init() {
   // digitou/colou um caminho à mão: o rótulo do upload não vale mais
   document.getElementById("f-folder").addEventListener("input", (e) => {
     delete e.currentTarget.dataset.real;
-  });
-  document.getElementById("browser-pick").addEventListener("click", pickFolder);
-  document.getElementById("browser-up").addEventListener("click", (e) => {
-    const parent = e.currentTarget.dataset.parent;
-    if (parent) browseTo(parent);
   });
 
   // Histórico recolhível; a escolha fica neste navegador

@@ -60,11 +60,7 @@ servidor() {
   echo "==> SMART ESBMC / JBMC"
   ferramentas | sed 's/^/    /'
   echo "    memória p/ verificadores: ${SMART_JBMC_MAX_MEM_TOTAL_MB} MB"
-  if [[ -n "${DEEPSEEK_API_KEY:-}" ]]; then
-    echo "    reparo LLM: chave DeepSeek configurada (precisa de internet)"
-  else
-    echo "    reparo LLM: sem chave — use 'Local (Ollama)' na tela ou o modo dry-run"
-  fi
+  echo "    reparo LLM: cada usuário informa a própria chave na tela, ou usa 'Local (Ollama)'"
   echo "    abra no navegador: http://localhost:${HOST_PORT:-$PORT}"
 
   cd /app/backend

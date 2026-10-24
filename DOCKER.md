@@ -73,11 +73,12 @@ Apagar **tudo**, inclusive os dados (irreversível):
 ## 3. Configuração opcional (`smartcps.env`)
 
 Copie `smartcps.env.exemplo` para `smartcps.env` e ajuste. Esse arquivo tem
-senha e chave: **nunca vai para o git**.
+senha: **nunca vai para o git**.
 
 - `ADMIN_LOGIN` / `ADMIN_PASSWORD`: admin criado **só no primeiro uso**.
 - `PORTA`: porta no seu computador.
-- `DEEPSEEK_API_KEY`: reparo pela LLM na nuvem (**precisa de internet**).
+- Chave de LLM na nuvem: **não** vai aqui. Cada usuário informa a própria em
+  "Configurar LLM", na tela (precisa de internet).
 - `SMART_JBMC_MAX_MEM_TOTAL_MB`: teto de memória dos verificadores. Vazio =
   70% da RAM. Existe porque, sem teto, o JBMC já chegou a 26 GB num caso e
   travou a máquina.
@@ -139,8 +140,8 @@ o release oficial 8.6 do GitHub, que é a mesma versão com os mesmos solvers.
 ### Sem script (Docker puro)
 
 ```bash
-docker build -t smartcps:2.1-cps .
-docker run -d --name smartcps -p 8100:8000 -v smartcps-dados:/app/data smartcps:2.1-cps
+docker build -t smartcps:2.2-cps .
+docker run -d --name smartcps -p 8100:8000 -v smartcps-dados:/app/data smartcps:2.2-cps
 ```
 
 ou `docker compose up -d` (usa o `docker-compose.yml`).

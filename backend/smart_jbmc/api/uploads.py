@@ -73,8 +73,8 @@ def folder_label(folder: str | None, owner_login: str | None = None) -> str:
     """Rótulo da pasta para a UI — nunca o caminho absoluto do servidor.
 
     Pasta enviada por upload vira ``<login>/<nome que ela tinha na máquina dele>``
-    (ex.: ``ana/QuixBugs``); qualquer outra pasta (admin apontando um benchmark
-    local via Browse) vira só o nome do diretório.
+    (ex.: ``ana/QuixBugs``); qualquer outra pasta (admin digitando o caminho de um
+    benchmark local) vira só o nome do diretório.
     """
     if not folder:
         return ""
@@ -166,7 +166,7 @@ async def upload_folder(
 def remove_upload_folder(folder: str, owner_id: int) -> bool:
     """Remove UMA pasta de upload (`data/uploads/<owner_id>/<upload_id>/`) e o
     sidecar do nome. Recusa qualquer caminho fora desse espaço — pasta local
-    apontada pelo admin no Browse **nunca** é apagada junto com a run."""
+    digitada pelo admin **nunca** é apagada junto com a run."""
     try:
         p = Path(folder).resolve()
         owner_root = (UPLOADS_DIR / str(owner_id)).resolve()

@@ -72,7 +72,7 @@ def list_solvers(user: dict = Depends(current_user)):
 
 def _folder_belongs_to(user: dict[str, Any], folder: str) -> bool:
     """User comum só pode usar pastas dentro de data/uploads/<user_id>/.
-    Admin pode usar qualquer pasta (inclui benchmarks locais via Browse).
+    Admin pode usar qualquer pasta (inclui benchmarks locais, com o caminho digitado).
     """
     if user.get("role") == "admin":
         return True

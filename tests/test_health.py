@@ -21,7 +21,8 @@ def test_health_logado_traz_ferramentas():
     assert body["status"] == "ok"
     assert isinstance(body["tools"], dict)
     assert body["version"]
-    assert "configured" in body["llm"]
+    # chave de LLM é de cada usuário: o servidor não anuncia chave própria
+    assert "llm" not in body
 
 
 def test_health_anonimo_so_prova_de_vida():
@@ -33,7 +34,6 @@ def test_health_anonimo_so_prova_de_vida():
     # nada de versão, caminhos de binário ou estado da LLM do servidor
     assert body["version"] is None
     assert body["tools"] is None
-    assert body["llm"] is None
     assert body["memoria"] is None                      # nem a RAM da máquina
     assert "/usr/" not in res.text
 

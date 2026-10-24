@@ -156,13 +156,13 @@ KOTLINC_PATH=/home/iartes/.sdkman/candidates/kotlin/current/bin/kotlinc
 
 # JAVAC_PATH / JAVA_PATH / GCC_PATH normalmente vêm do PATH — deixe em branco.
 
-# Reparo guiado por LLM (DeepSeek V4) — só para a etapa de repair
-DEEPSEEK_API_KEY=
+# Reparo guiado por LLM: modelo padrão. A chave NÃO vai aqui: cada usuário
+# informa a própria em "Configurar LLM".
 DEEPSEEK_MODEL=deepseek-v4-flash
 ```
 
-> **Segurança**: o `.env` **não** é versionado (está no `.gitignore`). Nunca
-> compartilhe a chave da API.
+> **Segurança**: o `.env` **não** é versionado (está no `.gitignore`). A chave de
+> API é de cada usuário e o servidor não guarda chave compartilhada.
 
 ### Resolução em 3 níveis (lembrete)
 
@@ -256,10 +256,9 @@ O servidor guarda apenas o hash bcrypt.
 
 ## 5.3 Upload de pasta (cliente → servidor)
 
-A SPA `/api/browse` lista o disco **do servidor**, então máquinas clientes da
-intranet não enxergam o disco delas. Para essas máquinas, o painel oferece um
-botão **"Enviar pasta"** que faz o upload da pasta selecionada para o servidor
-antes de lançar a verificação.
+O painel não navega pelo disco do servidor. O botão **"Enviar pasta"** faz o
+upload da pasta selecionada na máquina do usuário para o servidor antes de lançar
+a verificação.
 
 ### Como o usuário usa
 
@@ -272,8 +271,8 @@ antes de lançar a verificação.
    caminho que o servidor gerou em `data/uploads/<id>/`.
 4. Clicar em **Verificar** roda normalmente sobre esses arquivos.
 
-O botão **"Procurar no servidor"** (antigo "Procurar") continua disponível
-para o admin local apontar para benchmarks já no disco do servidor.
+Para benchmarks já no disco do servidor, o admin digita o caminho no campo
+**Pasta**.
 
 ### Endpoint REST (clientes programáticos)
 
@@ -321,8 +320,8 @@ usuário** — runs e uploads de outros não são tocados.
 
 Cada usuário **só enxerga os próprios dados** — runs, reparos e uploads
 ficam estritamente isolados. Isso vale **inclusive para o admin**: o papel
-`admin` dá privilégio sobre gestão de contas e `/api/browse`, **não** "vê
-tudo de todos".
+`admin` dá privilégio sobre gestão de contas e sobre pastas locais do servidor
+digitadas no campo, **não** "vê tudo de todos".
 
 ### O que está separado
 
@@ -335,8 +334,6 @@ tudo de todos".
 | `DELETE /api/runs` (Limpar histórico) | só apaga runs+uploads **do usuário**. |
 | `data/uploads/<owner_id>/<upload_id>/` | subpasta exclusiva por usuário. |
 | `POST /api/runs` (campo `folder`) | user comum **só pode** apontar para `data/uploads/<id_dele>/...`; outro caminho → **HTTP 403**. |
-| `/api/browse` | exige papel **admin** (vaza estrutura do servidor); 403 para `user`. |
-| SPA: botão **"Procurar no servidor"** | escondido para `user` (só admin vê). |
 
 ### Como subir mais usuários
 
@@ -682,7 +679,8 @@ Após uma verificação com bugs, a SPA mostra **Reparar bugs**. O ciclo:
 `BUG + contraexemplo → LLM propõe patch → JBMC/ESBMC re-verifica → FIX_OK ou
 novo contraexemplo realimenta a LLM`. Requisitos:
 
-- `DEEPSEEK_API_KEY` preenchido no `.env` e saldo na conta DeepSeek.
+- A chave do próprio usuário em **Configurar LLM** (DeepSeek, Groq, etc.) e saldo
+  na conta dele, ou o provedor **Local (Ollama)**, que dispensa chave.
 - `DEEPSEEK_MODEL`: `deepseek-v4-flash` (padrão, econômico) ou `deepseek-v4-pro`.
 - **`dry-run`** (interruptor na tela): roda o loop completo **sem** chamar a API
   — útil para validar a fiação sem gastar.

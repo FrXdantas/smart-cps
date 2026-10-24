@@ -245,6 +245,7 @@ body {
 }
 .hist-linha .hist-run { color: var(--texto-suave); font-size: .85rem; }
 .hist-linha .hist-data { font-variant-numeric: tabular-nums; }
+.hist-linha .hist-reparo { color: var(--texto-suave); font-size: .82rem; }
 .hist-linha .hist-tipo, .hist-linha .hist-llm { color: var(--texto-suave); }
 .history-item.active .hist-run { color: var(--texto); }
 @media (max-width: 575.98px) {
@@ -287,15 +288,6 @@ body {
 
 #progress-bar { transition: width .15s linear; }
 #repair-bar { transition: width .3s ease; }
-
-/* Navegador de diretórios */
-.browser-list {
-  max-height: 240px;
-  overflow-y: auto;
-  border: 1px solid var(--borda);
-  border-radius: .4rem;
-}
-.browser-dir { border: 0; }
 
 /* Pop-up de configuração do LLM (overlay próprio, sem depender do JS do Bootstrap) */
 .settings-overlay {

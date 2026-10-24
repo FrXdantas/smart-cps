@@ -1,7 +1,7 @@
 # SMART-CPS
 
 Verificação formal de código com reparo automático conferido pelo próprio verificador.
-Revisão 2.1-cps.
+Revisão 2.2-cps.
 
 Trabalho desenvolvido na disciplina PGENE601 / PPGINF554, Verificação e Síntese
 Automática de Sistemas Ciberfísicos e Embarcados (UFAM, 2026/2), sob a supervisão
@@ -78,7 +78,7 @@ Linux ou macOS:
 Windows (PowerShell, dentro da pasta do projeto):
 
 ```powershell
-docker build -t smartcps:2.1-cps .
+docker build -t smartcps:2.2-cps .
 ```
 
 ### 3. Iniciar o sistema
@@ -105,7 +105,7 @@ Docker, e o sistema roda isolado, sempre com as mesmas versões, em qualquer má
 
 Três termos aparecem com frequência:
 
-* Imagem (`smartcps:2.1-cps`): o pacote pronto, com o sistema e todas as
+* Imagem (`smartcps:2.2-cps`): o pacote pronto, com o sistema e todas as
   ferramentas. É construída uma única vez.
 * Container (`smartcps`): a imagem em execução. É ele que atende no endereço
   `localhost:8100`.
@@ -143,8 +143,8 @@ Os detalhes estão em [DOCKER.md](DOCKER.md).
 A verificação funciona inteiramente sem internet. O reparo depende de um modelo de
 linguagem, com três opções:
 
-* DeepSeek (serviço na nuvem): copiar `smartcps.env.exemplo` para `smartcps.env`,
-  preencher `DEEPSEEK_API_KEY` e reiniciar o sistema. Requer internet.
+* DeepSeek, Groq ou outro serviço na nuvem: cada usuário informa a própria chave em
+  "Configurar LLM". O servidor não guarda chave compartilhada. Requer internet.
 * Ollama (modelo local): instalar o Ollama, baixar um modelo, por exemplo
   `qwen2.5-coder:7b`, e selecionar "Local (Ollama)" na tela de reparo. No Linux,
   o `./subir.sh` já usa a rede do próprio PC para enxergar o Ollama; se o sistema

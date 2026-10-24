@@ -2,9 +2,10 @@
 
 A LLM apenas PROPÕE; quem aceita o patch é a fase de regressão (o BMC). Funciona
 com qualquer provedor compatível com a API OpenAI de chat/completions (DeepSeek,
-Groq, OpenRouter, ...): a UI fornece `base_url`/`api_key`/`model` por requisição;
-o .env (DEEPSEEK_API_KEY/DEEPSEEK_MODEL) é só fallback. A chave nunca é
-impressa/logada nem persistida em disco.
+Groq, OpenRouter, ...): a UI fornece `base_url`/`api_key`/`model` por requisição.
+A chave é sempre a do usuário que pediu o reparo: o servidor não tem chave
+própria para emprestar a todos. A chave nunca é impressa/logada nem persistida
+em disco.
 """
 
 import os
@@ -64,25 +65,9 @@ DEFAULT_LLM_MAX_RETRIES = int(os.environ.get("SMART_JBMC_LLM_MAX_RETRIES", "4"))
 _RETRYABLE_STATUS = {429, 502, 503}
 
 
-def env_api_key():
-    """Chave do .env (fallback quando a UI não fornece uma)."""
-    load_env()
-    key = os.environ.get("DEEPSEEK_API_KEY") or None
-    # O .env.example traz "sk-xxxxxxxx..." como placeholder. Tratá-lo como AUSENTE
-    # evita anunciar uma chave que existe mas dá 401 — sintoma confuso (a chamada
-    # nem acontece e parece "a LLM não conseguiu").
-    if key and set(key.removeprefix("sk-")) <= {"x"}:
-        return None
-    return key
-
-
 def default_model():
     load_env()
     return os.environ.get("DEEPSEEK_MODEL") or DEFAULT_MODEL
-
-
-def available() -> bool:
-    return bool(env_api_key()) and requests is not None
 
 
 SYSTEM_PROMPT = (
@@ -198,8 +183,8 @@ def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
                    file_name=None, context_files=None) -> dict:
     """Pede um patch a um provedor OpenAI-compatível.
 
-    `base_url`/`api_key`/`model` vêm da UI por requisição; caem para o .env
-    quando ausentes. dry_run (ou env SMART_JBMC_LLM_DRYRUN=1) devolve o código
+    `base_url`/`api_key`/`model` vêm da UI por requisição. Sem modelo, vale o
+    padrão do provedor. Sem chave, só o provedor local funciona. dry_run (ou env SMART_JBMC_LLM_DRYRUN=1) devolve o código
     inalterado, sem chamar a API (testar a fiação sem saldo/chave).
     """
     if dry_run or os.environ.get("SMART_JBMC_LLM_DRYRUN") == "1":
@@ -212,11 +197,11 @@ def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
     if is_local and LOCAL_BASE_URL != _DEFAULT_LOCAL_BASE_URL:
         # a SPA manda http://localhost:11434/v1; no container isso não chega ao Ollama
         base = LOCAL_BASE_URL
-    key = api_key or (None if is_local else env_api_key())
+    key = api_key or None
     if not key and not is_local:
         raise LLMUnavailable(
-            "Sem API key. Configure provedor/chave/modelo no botão de configuração "
-            "(ou preencha o .env), ou use o modo dry-run. "
+            "Sem API key. Configure provedor/chave/modelo no botão de configuração, "
+            "ou use o modo dry-run. "
             "Para usar a IA local desta máquina, escolha o provedor 'Local (Ollama)'."
         )
     model = model or (LOCAL_DEFAULT_MODEL if is_local else default_model())

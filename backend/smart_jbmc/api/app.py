@@ -15,7 +15,6 @@ from fastapi.staticfiles import StaticFiles
 from .. import __version__
 from ..auth.deps import current_user
 from ..auth.routes import router as auth_router
-from .browse import router as browse_router
 from .llm import router as llm_router
 from .repair import router as repair_router
 from .routes import router
@@ -59,7 +58,6 @@ def create_app() -> FastAPI:
     app.include_router(router, prefix="/api")          # /api/health público, mas só devolve status a anônimo
     app.include_router(auth_router, prefix="/api")     # /api/auth/* (cada rota define sua proteção)
     app.include_router(runs_router, prefix="/api", dependencies=protected)
-    app.include_router(browse_router, prefix="/api", dependencies=protected)
     app.include_router(repair_router, prefix="/api", dependencies=protected)
     app.include_router(uploads_router, prefix="/api", dependencies=protected)
     app.include_router(llm_router, prefix="/api", dependencies=protected)

@@ -1,6 +1,6 @@
 # SMART-CPS: documentação técnica
 
-Revisão 2.1-cps. Este documento complementa o [README](../README.md) principal e
+Revisão 2.2-cps. Este documento complementa o [README](../README.md) principal e
 descreve a arquitetura, a execução sem Docker, a configuração das ferramentas e o
 ciclo de reparo.
 
@@ -88,7 +88,6 @@ levar o projeto entre máquinas diferentes:
 ESBMC_PATH=/opt/esbmc/bin/esbmc
 JBMC_PATH=/usr/bin/jbmc
 KOTLINC_PATH=/opt/kotlinc/bin/kotlinc
-DEEPSEEK_API_KEY=
 DEEPSEEK_MODEL=deepseek-v4-flash
 ```
 
@@ -152,8 +151,9 @@ deixou de existir. Os resultados possíveis são:
 
 São feitas até 5 tentativas por alvo. O modo de simulação (`dry_run`) percorre o
 ciclo completo sem chamar o modelo de linguagem, o que permite testar o
-funcionamento sem custo. O reparo real exige `DEEPSEEK_API_KEY` configurada ou um
-modelo local pelo Ollama.
+funcionamento sem custo. O reparo real exige a chave do próprio usuário,
+informada em "Configurar LLM", ou um modelo local pelo Ollama. O servidor não guarda
+chave compartilhada.
 
 Endpoints: `POST /api/repair` (parâmetros `run_id`, `max_iters`, `unwind`, `timeout`,
 `solver`, `dry_run`), `GET /api/repair/{run_id}` e `POST /api/repair/{run_id}/cancel`.
