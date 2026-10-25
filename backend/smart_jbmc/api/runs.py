@@ -39,6 +39,9 @@ class RunRequest(BaseModel):
     jobs: int = 4
     solver: str = "boolector"
     concurrency: bool = False
+    # procurar corrida e impasse (CWE-362/833). None = igual a `concurrency`, como
+    # antes da separação; False = só explora as threads (asserções em código com threads).
+    race_check: bool | None = None
     # estratégia de verificação: bounded (padrão) | sound | incremental | kinduction
     # (ver core.verifiers.esbmc.STRATEGIES). `unwinding_assertions` é o alias legado
     # do modo sound, mantido por compatibilidade.

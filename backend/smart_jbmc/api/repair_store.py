@@ -69,6 +69,7 @@ def create_repair(run_id: str, opts: dict) -> dict:
     # saía FIX_OK até com o código idêntico (confirmado em 09/10/2026).
     cfg = run.get("config") or {}
     opts["concurrency"] = bool(cfg.get("concurrency", False))
+    opts["race_check"] = cfg.get("race_check")   # None = igual a concurrency
     opts["include_dirs"] = list(cfg.get("include_dirs") or [])
     opts["function"] = cfg.get("function") or None
     opts["nan_check"] = bool(cfg.get("nan_check", False))
@@ -126,6 +127,7 @@ def _execute(run_id: str, targets: list, opts: dict, api_key: str | None = None,
             nan_check=opts.get("nan_check", False),
             strategy=opts.get("strategy"),
             concurrency=opts.get("concurrency", False),
+            race_check=opts.get("race_check"),
             include_dirs=opts.get("include_dirs") or None,
             function=opts.get("function"),
             on_checkpoint=_checkpoint,

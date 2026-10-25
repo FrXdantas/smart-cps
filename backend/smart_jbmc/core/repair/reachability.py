@@ -92,7 +92,7 @@ def instrumentar(patch_code: str, idx: int, ext: str) -> str | None:
 def ponto_do_defeito_executa(*, original_code, patch_code, linha_defeito, ext,
                              work_dir, stem, unwind, timeout, solver,
                              unsigned_overflow=False, nan_check=False, strategy=None,
-                             concurrency=False, include_dirs=None, function=None,
+                             concurrency=False, race_check=None, include_dirs=None, function=None,
                              unit_sources=None, repaired_source=None,
                              entry_class=None) -> bool | None:
     """True se o ponto do defeito ainda é alcançável no patch; None se indecidível.
@@ -118,7 +118,7 @@ def ponto_do_defeito_executa(*, original_code, patch_code, linha_defeito, ext,
         # oráculo). Falhou => o ponto executa.
         reg = regression_check(caminho, "Assertion Failure", unwind, timeout, solver,
                                unsigned_overflow=unsigned_overflow, nan_check=nan_check, strategy=strategy,
-                               concurrency=concurrency, include_dirs=include_dirs,
+                               concurrency=concurrency, race_check=race_check, include_dirs=include_dirs,
                                function=function,
                                unit_sources=unit_sources,
                                repaired_source=repaired_source,

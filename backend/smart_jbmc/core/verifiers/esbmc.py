@@ -16,13 +16,28 @@ SOLVER_FLAGS = {
     "cvc": ["--cvc"],
 }
 
-# Concorrência (corrida de dados e impasse). Até a 2.0-cps (ESBMC 8.2) usava
-# `--context-bound 3`; no 8.6 o modelo de pthread gera quase o dobro de condições
-# por intercalação e a versão correta do sensor_atuador deixou de ser provada em
-# 180 s. A busca exaustiva com conjuntos de dormência (sem limite de trocas de
-# contexto, como pede o --help do 8.6) provou os 4 programas de referência em 1 a
-# 7 s e cobre todas as intercalações até o unwind. Medições em 20/10/2026.
-CONCURRENCY_FLAGS = ["--data-races-check", "--deadlock-check", "--no-por", "--sleep-sets"]
+# Concorrência em duas partes (rv. 2.4-cps, medição de 24/10/2026 em
+# deltas_semanais/semana_03_20a27-10/medicoes_esbmc86/opcao_b):
+# - THREAD_FLAGS explora as intercalações: conjuntos de dormência com limite de 3
+#   trocas de contexto (Cordeiro e Fischer, ICSE 2011). A busca sem limite
+#   (--no-por --sleep-sets, adotada na 2.1) perdia o defeito real do FreeRTOS #1236
+#   (tempo esgotado, 14,9 GB); com o limite ele sai em 9 s. Nos 4 programas de
+#   referência o limite custa mais tempo (47 a 98 s), mas todos seguem certos.
+# - RACE_FLAGS procura corrida de dados e impasse (CWE-362, CWE-833). É a parte cara
+#   de provar SAFE: sem ela, a versão corrigida do #1236 sai SAFE em 24 s.
+THREAD_FLAGS = ["--sleep-sets", "--context-bound", "3"]
+RACE_FLAGS = ["--data-races-check", "--deadlock-check"]
+CONCURRENCY_FLAGS = THREAD_FLAGS + RACE_FLAGS
+
+
+def concurrency_flags(concurrency: bool, race_check: bool | None = None) -> list[str]:
+    """Flags de threads. `race_check` None = igual a `concurrency` (runs e clientes
+    anteriores à separação). Procurar corrida implica explorar as threads."""
+    if race_check is None:
+        race_check = concurrency
+    if race_check:
+        return THREAD_FLAGS + RACE_FLAGS
+    return list(THREAD_FLAGS) if concurrency else []
 
 
 def property_flags(concurrency: bool) -> list[str]:
@@ -97,7 +112,7 @@ STRATEGIES = ("bounded", "sound", "incremental", "kinduction")
 
 
 def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
-              concurrency=False, solver="boolector", nice=10,
+              concurrency=False, solver="boolector", nice=10, race_check=None,
               unwinding_assertions=False, strategy=None,
               unsigned_overflow=False, nan_check=False, include_dirs=None, function=None,
               max_mem_mb=None) -> ToolResult:
@@ -129,7 +144,7 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
         _require("esbmc"), *files,
         "--overflow",
         "--memory-leak-check",
-        *property_flags(concurrency),
+        *property_flags(bool(concurrency_flags(concurrency, race_check))),
         "--show-stacktrace",
         "--timeout", str(timeout),
     ]
@@ -159,8 +174,7 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
     else:  # bounded
         cmd += ["--unwind", str(unwind), "--no-unwinding-assertions"]
     cmd += SOLVER_FLAGS.get(solver, SOLVER_FLAGS["boolector"])
-    if concurrency:
-        cmd += CONCURRENCY_FLAGS
+    cmd += concurrency_flags(concurrency, race_check)
     # `max_mem_mb` vem do orquestrador já rateado pelo `jobs`; sozinho, o
     # verificador assume que é o único rodando.
     mem = limite_memoria_mb() if max_mem_mb is None else max_mem_mb

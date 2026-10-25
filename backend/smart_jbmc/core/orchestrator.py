@@ -155,7 +155,7 @@ def _build_target(kind, target, source, raw, obj, elapsed,
 
 
 def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector",
-                     concurrency=False, build_root="build_verify",
+                     concurrency=False, race_check=None, build_root="build_verify",
                      unwinding_assertions=False, strategy=None,
                      unsigned_overflow=False, nan_check=False, include_dirs=None,
                      link_unit=None, files=None,
@@ -240,7 +240,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
     config = {
         "folder": folder, "unwind": unwind, "timeout": timeout, "jobs": jobs,
         "solver": solver, "solver_requested": solver_requested,
-        "concurrency": concurrency, "strategy": strategy,
+        "concurrency": concurrency, "race_check": race_check, "strategy": strategy,
         "unwinding_assertions": (strategy == "sound"),
         "unsigned_overflow": unsigned_overflow, "nan_check": nan_check,
         "files": list(files or []),
@@ -315,7 +315,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         _em_verificacao(_rel(cfile), True)
         try:
             res = run_esbmc(cfile, unwind=unwind, timeout=timeout,
-                            concurrency=concurrency, solver=solver,
+                            concurrency=concurrency, race_check=race_check, solver=solver,
                             strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
                             include_dirs=include_dirs, function=function,
                             max_mem_mb=mem_por_processo)
@@ -332,7 +332,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         _em_verificacao(label, True)
         try:
             res = run_esbmc(files, unwind=unwind, timeout=timeout,
-                            concurrency=concurrency, solver=solver,
+                            concurrency=concurrency, race_check=race_check, solver=solver,
                             strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
                             include_dirs=include_dirs, function=function,
                             max_mem_mb=mem_por_processo)

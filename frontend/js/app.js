@@ -189,6 +189,7 @@ async function launchRun(ev) {
     strategy: document.getElementById("f-strategy")?.value || "bounded",
     unsigned_overflow: !!document.getElementById("f-unsigned-overflow")?.checked,
     concurrency: !!document.getElementById("f-concurrency")?.checked,
+    race_check: !!document.getElementById("f-race-check")?.checked,
     nan_check: !!document.getElementById("f-nan-check")?.checked,
   };
   // Opções de projeto (avançado): só incluídas quando preenchidas. As listas
@@ -313,7 +314,7 @@ function renderResults(rec) {
   document.getElementById("results-header").classList.toggle("d-none", rec.status !== "cancelled");
   // com concorrência o ESBMC roda sem --multi-property (ver core/verifiers/esbmc.py)
   document.getElementById("aviso-primeiro-defeito")
-    .classList.toggle("d-none", !(rec.config && rec.config.concurrency));
+    .classList.toggle("d-none", !(rec.config && (rec.config.concurrency || rec.config.race_check)));
 
   const s = result.summary || {};
   const m = result.metrics || {};
@@ -1163,6 +1164,11 @@ function init() {
     envio = null;
     resumoSelecao();
   });
+  // procurar corrida implica explorar as threads (o servidor faz o mesmo)
+  const cbThreads = document.getElementById("f-concurrency");
+  const cbCorrida = document.getElementById("f-race-check");
+  cbCorrida.addEventListener("change", () => { if (cbCorrida.checked) cbThreads.checked = true; });
+  cbThreads.addEventListener("change", () => { if (!cbThreads.checked) cbCorrida.checked = false; });
   document.getElementById("envio-ok").addEventListener("click", fecharEnvio);
   document.getElementById("envio-close").addEventListener("click", fecharEnvio);
   document.getElementById("envio-todos").addEventListener("click", (e) => { e.preventDefault(); marcarTodos(true); });

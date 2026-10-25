@@ -80,6 +80,7 @@ def _execute(run_id: str, config: dict) -> None:
             config["folder"], unwind=config["unwind"], timeout=config["timeout"],
             jobs=config["jobs"], solver=config["solver"],
             concurrency=config.get("concurrency", False), build_root=build_root,
+            race_check=config.get("race_check"),
             unwinding_assertions=config.get("unwinding_assertions", False),
             strategy=config.get("strategy"),
             unsigned_overflow=config.get("unsigned_overflow", False),

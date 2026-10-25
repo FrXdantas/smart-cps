@@ -174,13 +174,14 @@ def test_run_esbmc_nan_check_vira_flag(monkeypatch):
 
 
 def test_run_esbmc_concorrencia_usa_sleep_sets(monkeypatch):
-    """ESBMC 8.6: busca exaustiva com conjuntos de dormência, sem limite de trocas."""
+    """ESBMC 8.6, rv. 2.4-cps: conjuntos de dormência com limite de 3 trocas de
+    contexto. Sem limite (2.1) o defeito do FreeRTOS #1236 se perdia (opcao_b)."""
     from smart_jbmc.core.verifiers import esbmc
 
     cmds = []
     monkeypatch.setattr(esbmc, "_require", lambda nome: nome)
     monkeypatch.setattr(esbmc, "run_cmd", lambda cmd, **kw: cmds.append(cmd) or ToolResult(0, "", ""))
     esbmc.run_esbmc("a.c", concurrency=True)
-    for flag in ("--data-races-check", "--deadlock-check", "--no-por", "--sleep-sets"):
+    for flag in ("--data-races-check", "--deadlock-check", "--sleep-sets", "--context-bound"):
         assert flag in cmds[0], flag
-    assert "--context-bound" not in cmds[0]
+    assert "--no-por" not in cmds[0]

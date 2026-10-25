@@ -17,7 +17,7 @@ ao resultado como um `fix` (artifactChanges/replacements) — formato que IDEs
 import os
 
 from .classify import CWE_INFO
-from .verifiers.esbmc import CONCURRENCY_FLAGS, esbmc_version, property_flags
+from .verifiers.esbmc import concurrency_flags, esbmc_version, property_flags
 
 SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 
@@ -235,7 +235,9 @@ def build_sarif(run_record: dict, repair_record: dict | None = None,
             "jobs": config.get("jobs"),
             "concurrency": config.get("concurrency"),
             # com concorrência o ESBMC para no primeiro defeito (sem --multi-property)
-            "only_first_violation": bool(config.get("concurrency")),
+            "race_check": config.get("race_check"),
+            "only_first_violation": bool(concurrency_flags(bool(config.get("concurrency")),
+                                                           config.get("race_check"))),
             "unsigned_overflow": bool(config.get("unsigned_overflow")),
             "nan_check": bool(config.get("nan_check")),
             # opções que não viram flag do ESBMC, mas mudam o que foi verificado
@@ -359,7 +361,8 @@ def _esbmc_cmd_template(config: dict) -> str:
     solver = config.get("solver", "boolector")
     strat = _strategy_of(config)
     parts = ["esbmc", "<arquivo.c>", "--overflow", "--memory-leak-check",
-             *property_flags(bool(config.get("concurrency"))),
+             *property_flags(bool(concurrency_flags(bool(config.get("concurrency")),
+                                                    config.get("race_check")))),
              "--show-stacktrace", "--timeout", str(timeout)]
     for d in (config.get("include_dirs") or []):
         parts += ["-I", d]
@@ -378,6 +381,5 @@ def _esbmc_cmd_template(config: dict) -> str:
     else:  # bounded
         parts += ["--unwind", str(unwind), "--no-unwinding-assertions"]
     parts.append("--" + solver)
-    if config.get("concurrency"):
-        parts += CONCURRENCY_FLAGS
+    parts += concurrency_flags(bool(config.get("concurrency")), config.get("race_check"))
     return " ".join(parts)

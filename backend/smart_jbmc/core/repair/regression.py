@@ -29,7 +29,7 @@ class RegressionResult:
 
 def _verify_fixed_c(fixed_path, unwind, timeout, solver,
                     unsigned_overflow=False, nan_check=False, unit_sources=None,
-                    repaired_source=None, strategy=None, concurrency=False,
+                    repaired_source=None, strategy=None, concurrency=False, race_check=None,
                     include_dirs=None, function=None) -> tuple[str, str | None]:
     """Re-verifica o patch. Se o alvo original era uma unidade linkada de vários
     `.c`, re-linka a unidade inteira trocando só o arquivo reparado — verificar o
@@ -46,7 +46,7 @@ def _verify_fixed_c(fixed_path, unwind, timeout, solver,
     # verificava outro ponto de entrada; sem `include_dirs` nem compilava.
     res = run_esbmc(target, unwind=unwind, timeout=timeout, solver=solver,
                     unsigned_overflow=unsigned_overflow, nan_check=nan_check, strategy=strategy,
-                    concurrency=concurrency, include_dirs=include_dirs,
+                    concurrency=concurrency, race_check=race_check, include_dirs=include_dirs,
                     function=function or None)
     return res.raw, None
 
@@ -145,6 +145,7 @@ def regression_check(fixed_path: str, original_bug: str, unwind: int, timeout: i
                      nan_check: bool = False,
                      strategy: str | None = None,
                      concurrency: bool = False,
+                     race_check: bool | None = None,
                      include_dirs: list[str] | None = None,
                      function: str | None = None,
                      unit_sources: list[str] | None = None,
@@ -172,7 +173,7 @@ def regression_check(fixed_path: str, original_bug: str, unwind: int, timeout: i
                                         unsigned_overflow=unsigned_overflow, nan_check=nan_check,
                                         unit_sources=unit_sources,
                                         repaired_source=repaired_source,
-                                        strategy=strategy, concurrency=concurrency,
+                                        strategy=strategy, concurrency=concurrency, race_check=race_check,
                                         include_dirs=include_dirs, function=function)
     elif ext in (".java", ".kt"):
         raw, comp_err = _verify_fixed_jvm(fixed_path, unwind, timeout, strategy=strategy,

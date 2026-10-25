@@ -169,9 +169,13 @@ int main(void) {
               <li><strong>Overflow unsigned</strong>: acusa estouro em <code>size_t</code> e <code>unsigned</code>
                 (CWE-190), como em cálculo de tamanho de alocação. O estouro com sinal é sempre verificado.
                 Fica desligado porque muito código usa a volta do unsigned de propósito (hash, buffer circular).</li>
-              <li><strong>Concorrência</strong>: procura corrida de dados (CWE-362) e impasse (CWE-833) entre
-                threads <code>pthread</code>. Deixa a verificação bem mais lenta. Com ela ligada, o ESBMC
+              <li><strong>Explorar threads</strong>: o ESBMC percorre as ordens em que as threads
+                <code>pthread</code> podem executar, com até 3 trocas de contexto (técnica de Cordeiro e
+                Fischer, ICSE 2011). Basta para asserções em código com threads. Com ela ligada, o ESBMC
                 para no primeiro defeito de cada arquivo, então só ele aparece no relatório.</li>
+              <li><strong>Procurar corrida e impasse</strong>: além de explorar as threads, procura corrida
+                de dados (CWE-362) e impasse (CWE-833). É a opção mais cara: provar que um programa
+                correto não tem corrida pode levar muito tempo.</li>
               <li><strong>NaN em ponto flutuante</strong>: acusa operações que geram NaN, como 0/0 ou
                 infinito menos infinito (CWE-682, regra FLP32-C).</li>
             </ul></dd>

@@ -184,4 +184,4 @@ def test_sarif_registra_todas_as_opcoes():
     for flag in ("-I /inc", "--function tarefa", "--unsigned-overflow-check",
                  "--nan-check", "--data-races-check", "--sleep-sets"):
         assert flag in cmd, flag
-    assert "--context-bound" not in cmd
+    assert "--context-bound 3" in cmd   # limite de trocas desde a rv. 2.4-cps
