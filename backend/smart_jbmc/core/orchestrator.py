@@ -112,6 +112,9 @@ def _primary_violation(violations, bug=None) -> dict | None:
         "description": v.get("description"),
         "condition": v.get("condition"),
         "aproximada": bool(v.get("line_aproximada")),
+        # pilha real do ESBMC: o RR4 sobe por ela quando a falha cai num invólucro de assert
+        "pilha": [dict(funcao=q.get("funcao"), linha=q.get("linha"), chamador=q.get("chamador"))
+                  for q in (v.get("pilha") or [])],
     }
 
 

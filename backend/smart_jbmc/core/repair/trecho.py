@@ -88,6 +88,22 @@ def funcao_que_contem(code: str, linha: int):
     return None
 
 
+_INVOLUCRO = re.compile(r"assert", re.I)
+
+
+def funcao_do_defeito(code: str, linha: int, pilha=None):
+    """Como `funcao_que_contem`, mas sobe pela pilha do ESBMC enquanto a função for
+    um invólucro de asserção (__VERIFIER_assert, __DSVERIFIER_assert...): a falha é
+    acusada dentro dele, mas o que precisa mudar está em quem o chamou."""
+    achado = funcao_que_contem(code, linha)
+    for q in pilha or []:
+        if not achado or not _INVOLUCRO.search(achado[2]):
+            break
+        if q.get("funcao") == achado[2] and q.get("chamador") and q.get("linha"):
+            achado = funcao_que_contem(code, q["linha"]) or achado
+    return achado
+
+
 def extrair(code: str, ini: int, fim: int) -> str:
     return "\n".join(code.split("\n")[ini:fim + 1])
 

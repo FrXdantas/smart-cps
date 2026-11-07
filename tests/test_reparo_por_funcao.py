@@ -107,3 +107,27 @@ def test_prompt_do_trecho():
     m = llm._messages("Overflow", {}, "", "int f(void){}", "cex", "C", None, None, None,
                       file_name="a.c", trecho="f (linhas 3 a 5 de 900)")
     assert "Devolva SOMENTE esta função" in m[1]["content"]
+
+
+INVOLUCRO = """void reach_error(void){}
+void __VERIFIER_assert(int cond)
+{
+    if (!cond) { reach_error(); }
+}
+int filtro(int x)
+{
+    int y = x * 2;
+    __VERIFIER_assert(y < 100);
+    return y;
+}
+int main(void) { return filtro(70); }
+"""
+
+
+def test_rr4_sobe_do_involucro_de_assert_pela_pilha():
+    pilha = [{"funcao": "__VERIFIER_assert", "linha": 9, "chamador": "filtro"},
+             {"funcao": "filtro", "linha": 12, "chamador": "main"},
+             {"funcao": "main", "linha": 12, "chamador": None}]
+    assert t.funcao_que_contem(INVOLUCRO, 4)[2] == "__VERIFIER_assert"
+    assert t.funcao_do_defeito(INVOLUCRO, 4, pilha)[2] == "filtro"
+    assert t.funcao_do_defeito(INVOLUCRO, 4, None)[2] == "__VERIFIER_assert"

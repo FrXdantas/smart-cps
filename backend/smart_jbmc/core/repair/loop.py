@@ -261,7 +261,7 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
                   should_cancel=None, unsigned_overflow=False, nan_check=False, propriedade=None,
                   strategy=None, concurrency=False, race_check=None, include_dirs=None, function=None,
                   unit_sources=None, fault_files=None,
-                  entry_class=None, linha_defeito=None,
+                  entry_class=None, linha_defeito=None, pilha=None,
                   cex_mode="estruturado") -> RepairResult:
     """Tenta reparar UM alvo. `patch_fn` é injetável (default: DeepSeek).
 
@@ -318,7 +318,7 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
     # RR4: arquivo que não cabe no teto de saída -> só a função do defeito vai à LLM
     trecho = None
     if ext in C_FAMILY_EXTS and linha_defeito and trecho_mod.precisa_trecho(code):
-        trecho = trecho_mod.funcao_que_contem(code, linha_defeito)
+        trecho = trecho_mod.funcao_do_defeito(code, linha_defeito, pilha)
         result.modo = "funcao" if trecho else "arquivo"
     texto_llm = trecho_mod.extrair(code, trecho[0], trecho[1]) if trecho else code
     desc_trecho = (f"{trecho[2]} (linhas {trecho[0] + 1} a {trecho[1] + 1} de "
@@ -585,6 +585,7 @@ def repair_run(targets, *, unwind, timeout, solver="boolector", max_iters=5,
             unit_sources=t.get("unit_sources"), fault_files=t.get("fault_files"),
             entry_class=t.get("target"), patch_fn=patch_fn,
             linha_defeito=(t.get("violation") or {}).get("line"),
+            pilha=(t.get("violation") or {}).get("pilha"),
             cex_mode=cex_mode,
         )
         results.append(asdict(rr))
