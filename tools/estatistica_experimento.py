@@ -23,7 +23,8 @@ from pathlib import Path
 DIRECAO = {
     "A1_alcancabilidade": "concorrencia", "A2_corrida": "concorrencia",
     "C_threads": "concorrencia", "C_corrida": "concorrencia",
-    "B1_assercao_usuario": "ponto_fixo", "C_aritmetica": "ponto_fixo",
+    "B1_assercao_usuario": "ponto_fixo", "B2_propriedade_dsverifier": "ponto_fixo",
+    "C_aritmetica": "ponto_fixo",
 }
 
 

@@ -56,6 +56,10 @@ CONFIG_POR_CONJUNTO = {
                        propriedade="corrida"),
     "B1_assercao_usuario": dict(unwind=18, timeout=180, jobs=2, concurrency=False,
                                 race_check=False, function="unit_test", propriedade="assercao"),
+    # DSVerifier digital-system (montado na semana 5): a propriedade é uma asserção do
+    # próprio DSVerifier; sem --fixedbv, que a ferramenta não tem (RC7)
+    "B2_propriedade_dsverifier": dict(unwind=11, timeout=180, jobs=2, concurrency=False,
+                                      race_check=False, propriedade="assercao"),
     "C_threads": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=False,
                       propriedade="assercao"),
     # grbl: a perda do pedido aparece na asserção do harness; o ESBMC não acusa
