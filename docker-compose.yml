@@ -2,7 +2,7 @@
 # (a imagem precisa existir: ./smartcps.sh construir, ou docker load do pacote)
 services:
   smartcps:
-    image: smartcps:2.6-cps
+    image: smartcps:2.7-cps
     build: .
     container_name: smartcps
     restart: unless-stopped
