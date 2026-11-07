@@ -58,8 +58,10 @@ CONFIG_POR_CONJUNTO = {
                                 race_check=False, function="unit_test", propriedade="assercao"),
     "C_threads": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=False,
                       propriedade="assercao"),
-    "C_corrida": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=True,
-                      propriedade="corrida"),
+    # grbl: a perda do pedido aparece na asserção do harness; o ESBMC não acusa
+    # corrida em acesso dentro de seção atômica (harness ajustado na semana 5)
+    "C_corrida": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=False,
+                      propriedade="assercao"),
     "C_aritmetica": dict(unwind=21, timeout=180, jobs=2, concurrency=False, race_check=False,
                          propriedade="estouro"),
 }
