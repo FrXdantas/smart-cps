@@ -225,6 +225,9 @@ def _next_cex(reg, ext, fixed_bug, cex_mode="estruturado"):
         return f"O patch anterior não compilou/verificou:\n{reg.reason}"
     if ext in C_FAMILY_EXTS:
         steps, violations = parse_esbmc_trace_text(reg.raw or "")
+        if getattr(reg, "raw_cex", "") and cex_mode == "estruturado":
+            # threads: passos da execução sem fatiamento (linha do tempo)
+            steps = parse_esbmc_trace_text(reg.raw_cex)[0] or steps
     else:
         # JVM (.java/.kt): trace em JSON do JBMC. Sem isto a realimentação entre
         # iterações não levava contraexemplo NOVO — o modelo re-tentava sem saber

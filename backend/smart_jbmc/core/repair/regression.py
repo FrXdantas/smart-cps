@@ -16,6 +16,7 @@ from ..compiler import compile_java, compile_kotlin
 from ..constants import C_FAMILY_EXTS
 from ..stubs import ensure_stubs
 from ..verifiers import run_esbmc, run_jbmc
+from ..verifiers.esbmc import concurrency_flags
 
 
 @dataclass
@@ -25,12 +26,13 @@ class RegressionResult:
     elapsed_s: float = 0.0
     reason: str | None = None
     raw: str = ""                # saída bruta do verificador (p/ extrair o novo CEX)
+    raw_cex: str = ""            # com threads: 2ª execução sem fatiamento (linha do tempo)
 
 
 def _verify_fixed_c(fixed_path, unwind, timeout, solver,
                     unsigned_overflow=False, nan_check=False, unit_sources=None,
                     repaired_source=None, strategy=None, concurrency=False, race_check=None,
-                    include_dirs=None, function=None) -> tuple[str, str | None]:
+                    include_dirs=None, function=None, no_slice=False) -> tuple[str, str | None]:
     """Re-verifica o patch. Se o alvo original era uma unidade linkada de vários
     `.c`, re-linka a unidade inteira trocando só o arquivo reparado — verificar o
     arquivo isolado havocaria as dependências e o veredicto não valeria."""
@@ -47,7 +49,7 @@ def _verify_fixed_c(fixed_path, unwind, timeout, solver,
     res = run_esbmc(target, unwind=unwind, timeout=timeout, solver=solver,
                     unsigned_overflow=unsigned_overflow, nan_check=nan_check, strategy=strategy,
                     concurrency=concurrency, race_check=race_check, include_dirs=include_dirs,
-                    function=function or None)
+                    function=function or None, no_slice=no_slice)
     return res.raw, None
 
 
@@ -200,4 +202,17 @@ def regression_check(fixed_path: str, original_bug: str, unwind: int, timeout: i
         verdict = "STILL_VULNERABLE"
     else:
         verdict = "DIFFERENT_BUG"
-    return RegressionResult(verdict, fixed_bug=fixed_bug, elapsed_s=elapsed, raw=raw)
+    raw_cex = ""
+    if ext in C_FAMILY_EXTS and concurrency_flags(concurrency, race_check):
+        # linha do tempo para a realimentação (o veredito já está decidido acima)
+        try:
+            raw_cex, _ = _verify_fixed_c(fixed_path, unwind, timeout, solver,
+                                         unsigned_overflow=unsigned_overflow, nan_check=nan_check,
+                                         unit_sources=unit_sources, repaired_source=repaired_source,
+                                         strategy=strategy, concurrency=concurrency,
+                                         race_check=race_check, include_dirs=include_dirs,
+                                         function=function, no_slice=True)
+        except Exception:  # noqa: BLE001
+            raw_cex = ""
+    return RegressionResult(verdict, fixed_bug=fixed_bug, elapsed_s=elapsed, raw=raw,
+                            raw_cex=raw_cex)

@@ -15,6 +15,7 @@ from .counterexample import (explain_counterexample, parse_esbmc_trace_text,
                             parse_jbmc_trace_json, pick_violation, stack_trace_text)
 from .metrics import aggregate_cwe, castle_score, infer_oracle_from_path
 from .process import limite_memoria_mb
+from .verifiers.esbmc import concurrency_flags
 from .verifiers import (available_solvers, is_no_entry_point, run_esbmc,
                         run_jbmc, solver_available)
 
@@ -115,7 +116,7 @@ def _primary_violation(violations, bug=None) -> dict | None:
 
 
 def _build_target(kind, target, source, raw, obj, elapsed,
-                  unit_sources=None) -> TargetResult:
+                  unit_sources=None, raw_cex=None) -> TargetResult:
     v = classify.classify(raw, obj)
     explanation = None
     fault_files: list[str] = []
@@ -129,7 +130,10 @@ def _build_target(kind, target, source, raw, obj, elapsed,
             # explicação — que é o contraexemplo entregue à LLM no reparo —
             # trazia só o parágrafo genérico da categoria.
             steps, violations = parse_jbmc_trace_json(obj if obj is not None else raw)
-        explanation = explain_counterexample(v.bug, steps, violations)
+        # Com threads, a 2ª execução sem fatiamento (`raw_cex`) traz a intercalação.
+        # A violação continua sendo a da verificação original.
+        passos_cex = parse_esbmc_trace_text(raw_cex)[0] if (kind == "esbmc" and raw_cex) else None
+        explanation = explain_counterexample(v.bug, passos_cex or steps, violations)
         fault_files = _fault_files(steps, violations)
         violation = _primary_violation(violations, v.bug)
         stack_trace = stack_trace_text(v.bug, steps, violations)
@@ -315,6 +319,20 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
                              round(time.perf_counter() - t, 3),
                              unit_sources=unit_files)
 
+    def _cex_com_threads(alvo, raw):
+        """Linha do tempo: com threads e defeito, roda de novo sem fatiamento só
+        para obter a intercalação. Não entra no tempo medido nem no veredito."""
+        if not (concurrency_flags(concurrency, race_check) and classify.has_failure(raw)):
+            return None
+        try:
+            return run_esbmc(alvo, unwind=unwind, timeout=timeout,
+                             concurrency=concurrency, race_check=race_check, solver=solver,
+                             strategy=strategy, unsigned_overflow=unsigned_overflow,
+                             nan_check=nan_check, include_dirs=include_dirs, function=function,
+                             max_mem_mb=mem_por_processo, no_slice=True).raw
+        except Exception:  # noqa: BLE001 — sem a linha do tempo, vale o traço fatiado
+            return None
+
     def do_esbmc(cfile):
         t = time.perf_counter()
         _em_verificacao(_rel(cfile), True)
@@ -324,10 +342,12 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
                             strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
                             include_dirs=include_dirs, function=function,
                             max_mem_mb=mem_por_processo)
+            elapsed = round(time.perf_counter() - t, 3)
+            raw_cex = _cex_com_threads(cfile, res.raw)
         finally:
             _em_verificacao(_rel(cfile), False)
         return _build_target("esbmc", os.path.basename(cfile), cfile, res.raw, None,
-                             round(time.perf_counter() - t, 3))
+                             elapsed, raw_cex=raw_cex)
 
     def do_esbmc_unit(files):
         # Verifica `files` como UMA unidade linkada (multi-arquivo). O alvo é
@@ -341,11 +361,12 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
                             strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
                             include_dirs=include_dirs, function=function,
                             max_mem_mb=mem_por_processo)
+            elapsed = round(time.perf_counter() - t, 3)
+            raw_cex = _cex_com_threads(files, res.raw)
         finally:
             _em_verificacao(label, False)
         return _build_target("esbmc", label, files[0], res.raw, None,
-                             round(time.perf_counter() - t, 3),
-                             unit_sources=list(files))
+                             elapsed, unit_sources=list(files), raw_cex=raw_cex)
 
     total = len(jbmc_specs) + len(c) + (1 if link_files else 0)
     _cb("verifying", 0, total)

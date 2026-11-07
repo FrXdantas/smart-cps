@@ -11,6 +11,7 @@ Os dois parsers devolvem a MESMA forma — `(steps, violations)` — para que
                  "condition": str}]
 """
 
+import os
 import re
 
 from .classify import detect_bug, safe_json
@@ -191,7 +192,7 @@ def parse_jbmc_trace_json(raw) -> tuple[list, list]:
 
 _ESBMC_STATE_RE = re.compile(
     r"State\s+(\d+)\s+file\s+(\S+)\s+line\s+(\d+)\s+column\s+(\d+)"
-    r"\s+function\s+(\S+)\s+thread\s+\d+\s*\n"
+    r"\s+function\s+(\S+)\s+thread\s+(\d+)\s*\n"
     r"-{5,}\s*\n"
     r"(.*?)"
     # Âncoras de início de linha (re.M), não "\n...": no 8.6 o estado final pode vir
@@ -223,7 +224,7 @@ _ESBMC_VIOLATION_RE = re.compile(
 #   c:@F@divide at file a.c line 3 column 34 function media
 # = estava em `divide`, chamada a partir de `media`, na linha 3.
 _ESBMC_QUADRO_RE = re.compile(
-    r"(?:c:@F@)?(\S+)\s+at file\s+(\S+)\s+line\s+(\d+)(?:\s+column\s+\d+)?"
+    r"(?:c:[^@\s]*@F@)?(\S+)\s+at file\s+(\S+)\s+line\s+(\d+)(?:\s+column\s+\d+)?"
     r"(?:\s+function\s+(\S+))?")
 
 
@@ -242,7 +243,7 @@ def parse_esbmc_trace_text(text: str) -> tuple[list, list]:
     """Retorna (steps, violations) do contraexemplo em texto do ESBMC."""
     steps = []
     for m in _ESBMC_STATE_RE.finditer(text):
-        state, file, line, _col, func, body = m.groups()
+        state, file, line, _col, func, thread, body = m.groups()
         assigns = []
         for am in _ESBMC_ASSIGN_RE.finditer(body):
             lhs, rhs = am.group(1).strip(), am.group(2).strip()
@@ -251,7 +252,7 @@ def parse_esbmc_trace_text(text: str) -> tuple[list, list]:
             assigns.append(f"{lhs} = {rhs}")
         steps.append({
             "state": int(state), "file": file, "line": int(line),
-            "function": func, "assigns": assigns,
+            "function": func, "assigns": assigns, "thread": int(thread),
         })
     violations = []
     for vm in _ESBMC_VIOLATION_RE.finditer(text):
@@ -407,6 +408,11 @@ def explain_counterexample(bug, esbmc_steps, esbmc_violations) -> str:
                 + (f"\n  condição que falha: {v['condition']}" if v.get("condition") else "")
             )
 
+    linha = linha_do_tempo(esbmc_steps)
+    if linha:
+        parts.append(linha)
+        return "\n".join(parts)
+
     relevant = []
     for st in esbmc_steps[-8:]:
         for a in st["assigns"]:
@@ -471,3 +477,36 @@ def stack_trace_text(bug, steps, violations) -> str:
         parts.append("\nFunções no caminho até a falha (da mais recente para a mais antiga):")
         parts.extend(f"  em {f}" for f in cadeia)
     return "\n".join(parts)
+
+
+# =====================================================
+# LINHA DO TEMPO DAS THREADS (item 4 do plano de 07/11)
+# =====================================================
+
+def _passo_do_programa(st) -> bool:
+    f = str(st.get("file") or "")
+    return not f.startswith("/esbmc-vfs") and not _FUNCOES_INTERNAS.match(str(st.get("function") or ""))
+
+
+def linha_do_tempo(steps, limite: int = 30) -> str | None:
+    """Intercalação das threads no contraexemplo, só com os passos do programa.
+
+    Devolve None quando o traço tem uma thread só (não há o que intercalar) ou
+    não traz o número da thread (JBMC). Cada troca de thread é marcada com ">>",
+    porque é nela que mora a condição de corrida: quem leu antes de quem gravar.
+    """
+    passos = [st for st in steps or [] if "thread" in st and _passo_do_programa(st)]
+    if len({st["thread"] for st in passos}) < 2:
+        return None
+    passos = passos[-limite:]
+    linhas = ["\nLinha do tempo das threads (passos do programa até a violação; "
+              ">> marca a troca de thread):"]
+    anterior = None
+    for st in passos:
+        troca = ">>" if anterior is not None and st["thread"] != anterior else "  "
+        efeito = "; ".join(st.get("assigns") or []) or "(sem atribuição)"
+        nome = os.path.basename(str(st.get("file") or ""))
+        linhas.append(f"{troca} thread {st['thread']} | {st.get('function')} "
+                      f"({nome}:{st.get('line')}) | {efeito}")
+        anterior = st["thread"]
+    return "\n".join(linhas)
