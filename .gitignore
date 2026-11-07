@@ -28,6 +28,8 @@ tools/*
 !tools/.gitkeep
 !tools/smart-jbmc-admin.py
 !tools/executar_bracos.py
+!tools/estatistica_experimento.py
+!tools/auditoria_experimento.py
 
 # Editores
 .vscode/
