@@ -18,6 +18,8 @@ const VERDICT_BADGE = {
   FIX_OK: "selo selo-bom", STILL_VULNERABLE: "selo selo-aviso",
   DIFFERENT_BUG: "selo selo-aviso", TIMEOUT: "selo selo-neutro", ERROR: "selo selo-neutro",
   PROVIDER_ERROR: "selo selo-neutro",
+  // resposta do modelo cortada no max_tokens: código incompleto, não foi ao verificador
+  TRUNCATED: "selo selo-aviso",
   // patch recusado pelas guardas ANTES de chegar ao verificador: reimplementou
   // classe que já existe em outro arquivo, ou apagou asserção p/ a violação sumir
   INVALID_PATCH: "selo selo-ruim",
@@ -538,6 +540,7 @@ function renderRepair(result) {
     summaryCard("Reparados", s.repaired || 0) +
     summaryCard("Não reparados", s.not_repaired || 0) +
     (s.provider_errors ? summaryCard("Erros provedor (429)", s.provider_errors) : "") +
+    (s.truncated ? summaryCard("Resposta cortada", s.truncated) : "") +
     summaryCard("Iter. médias", s.avg_iterations_when_repaired || 0) +
     summaryCard("Tok/s médio", s.avg_tok_s || 0);
   curRepair = result.targets || [];
@@ -550,12 +553,14 @@ function renderRepair(result) {
 const REPAIR_STATUS_BADGE = {
   REPAIRED: "selo selo-bom", NOT_REPAIRED: "selo selo-aviso",
   ERROR: "selo selo-neutro", PROVIDER_ERROR: "selo selo-neutro",
+  LLM_TRUNCATED: "selo selo-aviso",
 };
 
 function repairRow(t) {
   const badge = REPAIR_STATUS_BADGE[t.status] || "selo selo-aviso";
   // rótulo amigável: deixa claro que rate-limit não é falha de reparo
-  const label = t.status === "PROVIDER_ERROR" ? "PROVIDER_ERROR (cota/429)" : t.status;
+  const label = t.status === "PROVIDER_ERROR" ? "PROVIDER_ERROR (cota/429)"
+    : t.status === "LLM_TRUNCATED" ? "LLM_TRUNCATED (resposta cortada)" : t.status;
   const tr = document.createElement("tr");
   tr.className = "target-row";
   tr.innerHTML = `
@@ -631,6 +636,9 @@ function exportRepairReport() {
   if (s.provider_errors) {
     L.push(`- Erros de provedor (429/cota, EXCLUÍDOS do denominador): ${s.provider_errors}`);
     L.push(`- Alvos efetivamente tentados (com resposta do LLM): ${s.attempted}`);
+  }
+  if (s.truncated) {
+    L.push(`- Parados por resposta cortada no limite máximo (LLM_TRUNCATED, contam como não reparados): ${s.truncated}`);
   }
   L.push(`- Iterações médias (quando reparado): ${s.avg_iterations_when_repaired || 0}`);
   L.push(`- Velocidade média de geração: ${s.avg_tok_s || 0} tok/s`, "");

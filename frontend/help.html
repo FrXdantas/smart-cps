@@ -244,6 +244,7 @@ int main(void) {
             <tr><td><strong>STILL_VULNERABLE</strong></td><td>O mesmo defeito continua. Nova tentativa com o novo contraexemplo.</td></tr>
             <tr><td><strong>DIFFERENT_BUG</strong></td><td>O conserto trocou um defeito por outro.</td></tr>
             <tr><td><strong>INVALID_PATCH</strong></td><td>Recusado pelas guardas, sem chegar ao verificador.</td></tr>
+            <tr><td><strong>TRUNCATED</strong></td><td>A resposta do modelo foi cortada no limite de tamanho e o código veio incompleto. Não vai ao verificador; a próxima tentativa pede o dobro do limite. Se o corte acontece já no limite máximo, o alvo para como LLM_TRUNCATED.</td></tr>
             <tr><td><strong>PROVIDER_ERROR</strong></td><td>O provedor do modelo recusou a chamada (limite de uso, 429). Não conta como falha de reparo.</td></tr>
             <tr><td><strong>TIMEOUT</strong> / <strong>ERROR</strong></td><td>A reverificação não terminou ou não compilou.</td></tr>
           </tbody>

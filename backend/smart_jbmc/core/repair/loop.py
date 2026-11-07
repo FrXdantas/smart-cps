@@ -200,7 +200,7 @@ class RepairResult:
     target: str
     source: str | None
     original_bug: str
-    status: str = "NOT_REPAIRED"      # REPAIRED | NOT_REPAIRED | ERROR
+    status: str = "NOT_REPAIRED"      # REPAIRED | NOT_REPAIRED | ERROR | PROVIDER_ERROR | LLM_TRUNCATED
     iterations: int = 0
     attempts: list = field(default_factory=list)
     fixed_path: str | None = None
@@ -302,6 +302,7 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
     cur_unwind = unwind
     cex = counterexample
     prev_patch = prev_verdict = None
+    cur_max_tokens = llm.max_tokens_for(code)   # RR2; dobra após resposta truncada (RR3)
 
     try:
         for i in range(1, max_iters + 1):
@@ -319,6 +320,7 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
                     prev_verdict=prev_verdict, dry_run=dry_run,
                     file_name=os.path.basename(repair_path),
                     context_files=context_files,
+                    max_tokens=cur_max_tokens,
                 )
             except llm.LLMRateLimited:
                 # cota/limite do provedor (429) — erro de INFRAESTRUTURA, não de reparo.
@@ -339,12 +341,31 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
                 result.cancelled = True
                 break
 
+            gen_ms = gen.get("ms", 0) or 0
+            if gen.get("truncated"):
+                # RR1: resposta cortada no max_tokens = código incompleto. Não vai ao
+                # oráculo (daria ERROR de compilação e gastaria a reverificação).
+                comp_tokens = (gen.get("usage") or {}).get("completion_tokens") or 0
+                tok_s = round(comp_tokens / (gen_ms / 1000), 1) if comp_tokens and gen_ms else 0.0
+                result.attempts.append(asdict(
+                    RepairAttempt(i, "TRUNCATED", None, gen.get("model", "?"), gen_ms,
+                                  tokens=comp_tokens, tok_s=tok_s)))
+                result.iterations = i
+                if on_progress:
+                    on_progress(i, max_iters, tok_s)
+                # RR3: não repetir o mesmo pedido. Dobra o teto; se já estava no
+                # teto, outra chamada igual só gastaria tokens: o alvo para.
+                if cur_max_tokens >= llm.MAX_TOKENS_CAP:
+                    result.status = "LLM_TRUNCATED"
+                    return result
+                cur_max_tokens = min(llm.MAX_TOKENS_CAP, cur_max_tokens * 2)
+                continue
+
             patch_code = gen.get("patch") or code
             if ext in C_FAMILY_EXTS:
                 patch_code = ensure_c_headers(patch_code)  # normalização de compilação
             result.final_code = patch_code
 
-            gen_ms = gen.get("ms", 0) or 0
             # Guarda ANTES do BMC: um patch que reimplementa classe alheia ou apaga
             # asserção não deve nem chegar ao oráculo — ele passaria. Rejeita, gasta
             # a iteração e realimenta o motivo para o modelo tentar diferente.
@@ -430,6 +451,8 @@ def _aggregate(results, total) -> dict:
     """Resumo + distribuição por categoria a partir da lista de resultados."""
     repaired = sum(1 for r in results if r["status"] == "REPAIRED")
     provider_errors = sum(1 for r in results if r["status"] == "PROVIDER_ERROR")
+    # LLM_TRUNCATED conta como não reparado; o número à parte mostra a causa (RR3)
+    truncated = sum(1 for r in results if r["status"] == "LLM_TRUNCATED")
     iters = [r["iterations"] for r in results if r["status"] == "REPAIRED"]
     tok_speeds = [a["tok_s"] for r in results for a in r.get("attempts", []) if a.get("tok_s")]
     by_category: dict[str, dict] = {}
@@ -448,6 +471,7 @@ def _aggregate(results, total) -> dict:
             "provider_errors": provider_errors,
             "attempted": total - provider_errors,
             "not_repaired": total - repaired - provider_errors,
+            "truncated": truncated,
             "avg_iterations_when_repaired": round(sum(iters) / len(iters), 2) if iters else 0,
             "avg_tok_s": round(sum(tok_speeds) / len(tok_speeds), 1) if tok_speeds else 0,
         },

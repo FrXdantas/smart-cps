@@ -32,6 +32,21 @@ LOCAL_DEFAULT_MODEL = "deepseek-coder-v2:16b"
 # levam minutos para gerar o arquivo inteiro — 120 s estourava. Override via env.
 DEFAULT_LLM_TIMEOUT = int(os.environ.get("SMART_JBMC_LLM_TIMEOUT", "600"))
 
+# Teto de saída da chamada. A LLM devolve o ARQUIVO INTEIRO; um teto fixo de 8000
+# cortava unidades de firmware pré-processadas (CMSIS arm_pid_q31, 20 KB) no meio
+# e o oráculo recebia C incompleto. O valor sai do tamanho do arquivo (RR2):
+# ~0,75 token por caractere + folga para o raciocínio, entre o piso e o teto.
+# Teto conservador para valer em qualquer provedor (DeepSeek aceita 384K).
+MAX_TOKENS_MIN = 8000
+MAX_TOKENS_CAP = int(os.environ.get("SMART_JBMC_LLM_MAX_TOKENS_CAP", "32768"))
+_FOLGA_RACIOCINIO = 4000
+
+
+def max_tokens_for(code: str) -> int:
+    """max_tokens adequado para a LLM devolver `code` inteiro (RR2)."""
+    estimativa = (len(code or "") * 3) // 4 + _FOLGA_RACIOCINIO
+    return max(MAX_TOKENS_MIN, min(MAX_TOKENS_CAP, estimativa))
+
 # Provedores OpenAI-compatíveis conhecidos (a UI já manda a base_url resolvida;
 # este mapa é só conveniência/fallback no servidor).
 PROVIDER_BASE_URL = {
@@ -179,7 +194,7 @@ def _strip_fences(text):
 def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
                    model=None, base_url=None, api_key=None,
                    prev_patch=None, prev_cex=None, prev_verdict=None,
-                   timeout=None, max_tokens=8000, temperature=0.2, dry_run=False,
+                   timeout=None, max_tokens=None, temperature=0.2, dry_run=False,
                    file_name=None, context_files=None) -> dict:
     """Pede um patch a um provedor OpenAI-compatível.
 
@@ -206,6 +221,7 @@ def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
         )
     model = model or (LOCAL_DEFAULT_MODEL if is_local else default_model())
     timeout = timeout or DEFAULT_LLM_TIMEOUT
+    max_tokens = max_tokens or max_tokens_for(code)
     headers = {"Content-Type": "application/json"}
     if key:
         headers["Authorization"] = f"Bearer {key}"
@@ -246,6 +262,11 @@ def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
                 f"{resp.text[:200]}")
         raise LLMUnavailable(f"HTTP {resp.status_code}: {resp.text[:300]}")
     data = resp.json()
-    content = data["choices"][0]["message"].get("content") or ""
+    choice = data["choices"][0]
+    content = choice["message"].get("content") or ""
+    # RR1: "length" = o provedor cortou a resposta no max_tokens. O código veio
+    # incompleto e não pode ir ao oráculo como se fosse um patch.
+    truncated = choice.get("finish_reason") == "length"
     return {"patch": _strip_fences(content), "usage": data.get("usage"),
-            "model": data.get("model", model), "ms": ms}
+            "model": data.get("model", model), "ms": ms,
+            "truncated": truncated, "max_tokens": max_tokens}
