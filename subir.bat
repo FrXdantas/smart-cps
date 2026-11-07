@@ -5,7 +5,7 @@ REM   subir.bat parar     para (os dados ficam guardados)
 REM   subir.bat logs      log ao vivo (Ctrl+C sai)
 setlocal
 cd /d "%~dp0"
-set IMAGEM=smartcps:2.5-cps
+set IMAGEM=smartcps:2.6-cps
 set NOME=smartcps
 set PORTA=8100
 
