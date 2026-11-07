@@ -212,11 +212,30 @@ _ESBMC_ASSIGN_RE = re.compile(
 _ESBMC_VIOLATION_RE = re.compile(
     r"Violated property:\s*\n"
     r"\s+file\s+(\S+)\s+line\s+(\d+)[^\n]*\n"
-    r"(?:[ \t]*Stack trace:[ \t]*\n(?:[^\n]*\bat file\b[^\n]*\n)*)?"
+    r"(?:[ \t]*Stack trace:[ \t]*\n((?:[^\n]*\bat file\b[^\n]*\n)*))?"
     r"[ \t]+([^\n]+)"
     r"(?:\n[ \t]+CWE:[ \t]*([^\n]+))?"
     r"(?:\n[ \t]+([^\n]+))?",
 )
+
+
+# Quadro do "Stack trace:" do ESBMC (--show-stacktrace):
+#   c:@F@divide at file a.c line 3 column 34 function media
+# = estava em `divide`, chamada a partir de `media`, na linha 3.
+_ESBMC_QUADRO_RE = re.compile(
+    r"(?:c:@F@)?(\S+)\s+at file\s+(\S+)\s+line\s+(\d+)(?:\s+column\s+\d+)?"
+    r"(?:\s+function\s+(\S+))?")
+
+
+def _pilha(bloco: str) -> list[dict]:
+    """Quadros da pilha real do ESBMC, do mais interno (onde falhou) ao `main`."""
+    quadros = []
+    for ln in bloco.splitlines():
+        m = _ESBMC_QUADRO_RE.search(ln)
+        if m:
+            quadros.append({"funcao": m.group(1), "arquivo": m.group(2),
+                            "linha": int(m.group(3)), "chamador": m.group(4)})
+    return quadros
 
 
 def parse_esbmc_trace_text(text: str) -> tuple[list, list]:
@@ -238,8 +257,9 @@ def parse_esbmc_trace_text(text: str) -> tuple[list, list]:
     for vm in _ESBMC_VIOLATION_RE.finditer(text):
         violations.append({
             "file": vm.group(1), "line": int(vm.group(2)),
-            "description": vm.group(3).strip(), "condition": (vm.group(5) or "").strip(),
-            "cwe_esbmc": (vm.group(4) or "").strip(),
+            "description": vm.group(4).strip(), "condition": (vm.group(6) or "").strip(),
+            "cwe_esbmc": (vm.group(5) or "").strip(),
+            "pilha": _pilha(vm.group(3) or ""),
         })
     return steps, violations
 
@@ -436,8 +456,18 @@ def stack_trace_text(bug, steps, violations) -> str:
     if v and not (str(v.get("file", "-")) == "-" and str(v.get("line", "-")) == "-"):
         parts.append(f"\nPonto da falha:\n  arquivo {v['file']}, linha {v['line']}\n"
                      f"  descrição: {v['description']}")
+    pilha = (v or {}).get("pilha") or []
+    if pilha:
+        # pilha real do ESBMC (--show-stacktrace): função e local de cada chamada
+        parts.append("\nPilha de chamadas (da mais recente para a mais antiga):")
+        for q in pilha:
+            onde = (f", chamada por {q['chamador']} na linha {q['linha']}"
+                    if q.get("chamador") else "")
+            parts.append(f"  em {q['funcao']}{onde}")
+        return "\n".join(parts)
+    # Sem o bloco (defeito no próprio main, ou JBMC): aproximação pelo traço.
     cadeia = cadeia_de_chamadas(steps, violations)
     if cadeia:
-        parts.append("\nPilha de chamadas (da mais recente para a mais antiga):")
+        parts.append("\nFunções no caminho até a falha (da mais recente para a mais antiga):")
         parts.extend(f"  em {f}" for f in cadeia)
     return "\n".join(parts)

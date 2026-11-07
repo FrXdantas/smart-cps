@@ -206,3 +206,39 @@ def test_executor_ponta_a_ponta_com_llm_falsa(tmp_path, monkeypatch):
     ex.main(["--corpora", str(tmp_path / "corpora"), "--saida", str(saida),
              "--conjuntos", "C_aritmetica"])
     assert len(ler("B.csv")) == 1 and len(contextos) == 2
+
+
+SAIDA_ESBMC86 = """[Counterexample]
+
+State 1 file st.c line 4 column 18 function main thread 0
+----------------------------------------------------
+  n = 0 (00000000 00000000 00000000 00000000)
+
+State 2 file st.c line 2 column 28 function divide thread 0
+----------------------------------------------------
+Violated property:
+  file st.c line 2 column 28 function divide
+Stack trace:
+  c:@F@divide at file st.c line 3 column 34 function media
+  c:@F@media at file st.c line 4 column 65 function main
+  c:@F@main at file st.c line 4 column 1
+  division by zero
+  CWE: CWE-369
+  b != 0
+
+
+VERIFICATION FAILED
+"""
+
+
+def test_b_usa_a_pilha_real_do_esbmc():
+    """--show-stacktrace traz a pilha com o local de cada chamada; a função `media`
+    nem aparece como estado do traço, e a aproximação a perderia."""
+    from smart_jbmc.core.counterexample import parse_esbmc_trace_text
+    steps, viol = parse_esbmc_trace_text(SAIDA_ESBMC86)
+    assert viol[0]["description"] == "division by zero" and viol[0]["condition"] == "b != 0"
+    assert [q["funcao"] for q in viol[0]["pilha"]] == ["divide", "media", "main"]
+    t = stack_trace_text("Division by Zero", steps, viol)
+    assert "em divide, chamada por media na linha 3" in t
+    assert "em media, chamada por main na linha 4" in t
+    assert "n = 0" not in t and "b != 0" not in t
