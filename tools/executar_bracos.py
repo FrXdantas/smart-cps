@@ -289,6 +289,8 @@ def main(argv=None):
     ap.add_argument("--modelo", default="deepseek-flash")
     ap.add_argument("--base-url", default="https://api.deepseek.com")
     ap.add_argument("--max-iters", type=int, default=5)
+    ap.add_argument("--jobs", type=int, default=0,
+                    help="verificações em paralelo no grupo A (0 = o valor de cada conjunto)")
     ap.add_argument("--todas-as-propriedades", action="store_true",
                     help="verifica todas as propriedades (modo de sempre), não só a do gabarito")
     a = ap.parse_args(argv)
@@ -313,6 +315,8 @@ def main(argv=None):
         opts = {**PADRAO, **CONFIG_POR_CONJUNTO[conj]}
         if a.todas_as_propriedades:
             opts["propriedade"] = "todas"
+        if a.jobs:
+            opts["jobs"] = a.jobs
         sel = selecionar(ler_gabarito(pasta), a.limite, a.semente)
         (a.saida / conj).mkdir(parents=True, exist_ok=True)
         meta["conjuntos"][conj] = dict(opcoes=opts, programas=[r["arquivo"] for r in sel])
