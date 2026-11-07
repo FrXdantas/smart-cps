@@ -166,7 +166,7 @@ def _build_target(kind, target, source, raw, obj, elapsed,
 def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector",
                      concurrency=False, race_check=None, build_root="build_verify",
                      unwinding_assertions=False, strategy=None,
-                     unsigned_overflow=False, nan_check=False, include_dirs=None,
+                     unsigned_overflow=False, nan_check=False, include_dirs=None, propriedade=None,
                      link_unit=None, files=None,
                      function=None, on_progress=None, should_cancel=None) -> RunResult:
     """Roda a verificação. `on_progress(phase, done, total, current)` é chamado ao
@@ -251,7 +251,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         "solver": solver, "solver_requested": solver_requested,
         "concurrency": concurrency, "race_check": race_check, "strategy": strategy,
         "unwinding_assertions": (strategy == "sound"),
-        "unsigned_overflow": unsigned_overflow, "nan_check": nan_check,
+        "unsigned_overflow": unsigned_overflow, "nan_check": nan_check, "propriedade": propriedade or "todas",
         "files": list(files or []),
     }
     _cb("compiling", 0, 0)
@@ -322,13 +322,13 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
     def _cex_com_threads(alvo, raw):
         """Linha do tempo: com threads e defeito, roda de novo sem fatiamento só
         para obter a intercalação. Não entra no tempo medido nem no veredito."""
-        if not (concurrency_flags(concurrency, race_check) and classify.has_failure(raw)):
+        if not (concurrency_flags(concurrency, race_check, propriedade) and classify.has_failure(raw)):
             return None
         try:
             return run_esbmc(alvo, unwind=unwind, timeout=timeout,
                              concurrency=concurrency, race_check=race_check, solver=solver,
                              strategy=strategy, unsigned_overflow=unsigned_overflow,
-                             nan_check=nan_check, include_dirs=include_dirs, function=function,
+                             nan_check=nan_check, propriedade=propriedade, include_dirs=include_dirs, function=function,
                              max_mem_mb=mem_por_processo, no_slice=True).raw
         except Exception:  # noqa: BLE001 — sem a linha do tempo, vale o traço fatiado
             return None
@@ -339,7 +339,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         try:
             res = run_esbmc(cfile, unwind=unwind, timeout=timeout,
                             concurrency=concurrency, race_check=race_check, solver=solver,
-                            strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
+                            strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check, propriedade=propriedade,
                             include_dirs=include_dirs, function=function,
                             max_mem_mb=mem_por_processo)
             elapsed = round(time.perf_counter() - t, 3)
@@ -358,7 +358,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         try:
             res = run_esbmc(files, unwind=unwind, timeout=timeout,
                             concurrency=concurrency, race_check=race_check, solver=solver,
-                            strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check,
+                            strategy=strategy, unsigned_overflow=unsigned_overflow, nan_check=nan_check, propriedade=propriedade,
                             include_dirs=include_dirs, function=function,
                             max_mem_mb=mem_por_processo)
             elapsed = round(time.perf_counter() - t, 3)

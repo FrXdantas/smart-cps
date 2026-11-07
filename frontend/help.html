@@ -178,6 +178,13 @@ int main(void) {
                 correto não tem corrida pode levar muito tempo.</li>
               <li><strong>NaN em ponto flutuante</strong>: acusa operações que geram NaN, como 0/0 ou
                 infinito menos infinito (CWE-682, regra FLP32-C).</li>
+              <li><strong>Propriedade</strong>: em <em>todas</em>, a ferramenta checa tudo, como sempre
+                (asserções, limites de vetor, ponteiros, divisão por zero, estouro e vazamento). As outras
+                escolhas verificam só uma propriedade, como o SV-COMP avalia cada tarefa:
+                <em>só asserções</em> (assert e reach_error), <em>só condição de corrida</em> (liga a
+                exploração das threads e a busca de corrida, sem impasse) e <em>só estouro aritmético</em>.
+                Serve para medir com programas de gabarito conhecido, em que um vazamento inofensivo não
+                pode esconder o defeito estudado. O reparo herda a escolha.</li>
             </ul></dd>
         </dl>
       </section>

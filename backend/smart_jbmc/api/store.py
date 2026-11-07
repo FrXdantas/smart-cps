@@ -85,6 +85,7 @@ def _execute(run_id: str, config: dict) -> None:
             strategy=config.get("strategy"),
             unsigned_overflow=config.get("unsigned_overflow", False),
             nan_check=config.get("nan_check", False),
+            propriedade=config.get("propriedade") or None,
             include_dirs=config.get("include_dirs") or None,
             link_unit=config.get("link_unit") or None,
             files=config.get("files") or None,

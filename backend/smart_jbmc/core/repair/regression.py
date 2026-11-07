@@ -30,7 +30,7 @@ class RegressionResult:
 
 
 def _verify_fixed_c(fixed_path, unwind, timeout, solver,
-                    unsigned_overflow=False, nan_check=False, unit_sources=None,
+                    unsigned_overflow=False, nan_check=False, propriedade=None, unit_sources=None,
                     repaired_source=None, strategy=None, concurrency=False, race_check=None,
                     include_dirs=None, function=None, no_slice=False) -> tuple[str, str | None]:
     """Re-verifica o patch. Se o alvo original era uma unidade linkada de vários
@@ -47,7 +47,7 @@ def _verify_fixed_c(fixed_path, unwind, timeout, solver,
     # sempre em `bounded`, aceitando SAFE vacuamente verdadeiro; sem `function`
     # verificava outro ponto de entrada; sem `include_dirs` nem compilava.
     res = run_esbmc(target, unwind=unwind, timeout=timeout, solver=solver,
-                    unsigned_overflow=unsigned_overflow, nan_check=nan_check, strategy=strategy,
+                    unsigned_overflow=unsigned_overflow, nan_check=nan_check, propriedade=propriedade, strategy=strategy,
                     concurrency=concurrency, race_check=race_check, include_dirs=include_dirs,
                     function=function or None, no_slice=no_slice)
     return res.raw, None
@@ -145,6 +145,7 @@ def regression_check(fixed_path: str, original_bug: str, unwind: int, timeout: i
                      solver: str = "boolector",
                      unsigned_overflow: bool = False,
                      nan_check: bool = False,
+                     propriedade: str | None = None,
                      strategy: str | None = None,
                      concurrency: bool = False,
                      race_check: bool | None = None,
@@ -172,7 +173,7 @@ def regression_check(fixed_path: str, original_bug: str, unwind: int, timeout: i
 
     if ext in C_FAMILY_EXTS:
         raw, comp_err = _verify_fixed_c(fixed_path, unwind, timeout, solver,
-                                        unsigned_overflow=unsigned_overflow, nan_check=nan_check,
+                                        unsigned_overflow=unsigned_overflow, nan_check=nan_check, propriedade=propriedade,
                                         unit_sources=unit_sources,
                                         repaired_source=repaired_source,
                                         strategy=strategy, concurrency=concurrency, race_check=race_check,
@@ -203,11 +204,11 @@ def regression_check(fixed_path: str, original_bug: str, unwind: int, timeout: i
     else:
         verdict = "DIFFERENT_BUG"
     raw_cex = ""
-    if ext in C_FAMILY_EXTS and concurrency_flags(concurrency, race_check):
+    if ext in C_FAMILY_EXTS and concurrency_flags(concurrency, race_check, propriedade):
         # linha do tempo para a realimentação (o veredito já está decidido acima)
         try:
             raw_cex, _ = _verify_fixed_c(fixed_path, unwind, timeout, solver,
-                                         unsigned_overflow=unsigned_overflow, nan_check=nan_check,
+                                         unsigned_overflow=unsigned_overflow, nan_check=nan_check, propriedade=propriedade,
                                          unit_sources=unit_sources, repaired_source=repaired_source,
                                          strategy=strategy, concurrency=concurrency,
                                          race_check=race_check, include_dirs=include_dirs,

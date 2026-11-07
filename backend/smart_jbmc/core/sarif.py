@@ -17,7 +17,7 @@ ao resultado como um `fix` (artifactChanges/replacements) — formato que IDEs
 import os
 
 from .classify import CWE_INFO
-from .verifiers.esbmc import concurrency_flags, esbmc_version, property_flags
+from .verifiers.esbmc import checagens, concurrency_flags, esbmc_version, property_flags
 
 SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 
@@ -237,9 +237,11 @@ def build_sarif(run_record: dict, repair_record: dict | None = None,
             # com concorrência o ESBMC para no primeiro defeito (sem --multi-property)
             "race_check": config.get("race_check"),
             "only_first_violation": bool(concurrency_flags(bool(config.get("concurrency")),
-                                                           config.get("race_check"))),
+                                                           config.get("race_check"),
+                                                           config.get("propriedade") or None)),
             "unsigned_overflow": bool(config.get("unsigned_overflow")),
             "nan_check": bool(config.get("nan_check")),
+            "propriedade": config.get("propriedade") or "todas",
             # opções que não viram flag do ESBMC, mas mudam o que foi verificado
             "include_dirs": list(config.get("include_dirs") or []),
             "link_unit": list(config.get("link_unit") or []),
@@ -360,9 +362,10 @@ def _esbmc_cmd_template(config: dict) -> str:
     timeout = config.get("timeout", "?")
     solver = config.get("solver", "boolector")
     strat = _strategy_of(config)
-    parts = ["esbmc", "<arquivo.c>", "--overflow", "--memory-leak-check",
+    prop = config.get("propriedade") or None
+    parts = ["esbmc", "<arquivo.c>", *checagens(prop),
              *property_flags(bool(concurrency_flags(bool(config.get("concurrency")),
-                                                    config.get("race_check")))),
+                                                    config.get("race_check"), prop))),
              "--show-stacktrace", "--timeout", str(timeout)]
     for d in (config.get("include_dirs") or []):
         parts += ["-I", d]
@@ -381,5 +384,5 @@ def _esbmc_cmd_template(config: dict) -> str:
     else:  # bounded
         parts += ["--unwind", str(unwind), "--no-unwinding-assertions"]
     parts.append("--" + solver)
-    parts += concurrency_flags(bool(config.get("concurrency")), config.get("race_check"))
+    parts += concurrency_flags(bool(config.get("concurrency")), config.get("race_check"), prop)
     return " ".join(parts)

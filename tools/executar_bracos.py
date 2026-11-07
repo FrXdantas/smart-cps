@@ -47,17 +47,24 @@ from smart_jbmc.core.repair.regression import regression_check  # noqa: E402
 # iguais em todos os braços; a divergência com k = 10 / 20 s da especificação vai
 # registrada no artigo). A1 roda sem --unsigned-overflow-check (o piloto o ligou
 # por engano; o gabarito do SV-COMP é só reach_error).
+# `propriedade` = a do gabarito de cada conjunto (RC4; delta 4, frente 1). Com
+# --todas-as-propriedades o executor volta ao modo de sempre (o do piloto).
 CONFIG_POR_CONJUNTO = {
-    "A1_alcancabilidade": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=False),
-    "A2_corrida": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=True),
+    "A1_alcancabilidade": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=False,
+                               propriedade="assercao"),
+    "A2_corrida": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=True,
+                       propriedade="corrida"),
     "B1_assercao_usuario": dict(unwind=18, timeout=180, jobs=2, concurrency=False,
-                                race_check=False, function="unit_test"),
-    "C_threads": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=False),
-    "C_corrida": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=True),
-    "C_aritmetica": dict(unwind=21, timeout=180, jobs=2, concurrency=False, race_check=False),
+                                race_check=False, function="unit_test", propriedade="assercao"),
+    "C_threads": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=False,
+                      propriedade="assercao"),
+    "C_corrida": dict(unwind=3, timeout=180, jobs=1, concurrency=True, race_check=True,
+                      propriedade="corrida"),
+    "C_aritmetica": dict(unwind=21, timeout=180, jobs=2, concurrency=False, race_check=False,
+                         propriedade="estouro"),
 }
 PADRAO = dict(solver="boolector", strategy="bounded", unsigned_overflow=False,
-              nan_check=False, function=None)
+              nan_check=False, function=None, propriedade="todas")
 
 COLS_A = ["conjunto", "arquivo", "gabarito", "cwe_esperada", "status", "bug", "cwe_id",
           "tempo_s", "estrito"]
@@ -194,6 +201,7 @@ def grupo_reparo(conj, braco, pasta, sel, alvos, saida, opts, llm_cfg, max_iters
         res = repair_run([a], unwind=opts["unwind"], timeout=opts["timeout"],
                          solver=opts["solver"], max_iters=max_iters,
                          unsigned_overflow=opts["unsigned_overflow"], nan_check=opts["nan_check"],
+                         propriedade=opts["propriedade"],
                          strategy=opts["strategy"], concurrency=opts["concurrency"],
                          race_check=opts["race_check"], function=opts.get("function"),
                          work_dir=str(saida / "trabalho" / conj / f"rep_{braco}"),
@@ -246,6 +254,7 @@ def grupo_d(conj, pasta, sel, alvos, saida, opts, llm_cfg):
                 reg = regression_check(str(fixed), a["bug"], opts["unwind"], opts["timeout"],
                                        opts["solver"], unsigned_overflow=opts["unsigned_overflow"],
                                        nan_check=opts["nan_check"], strategy=opts["strategy"],
+                                       propriedade=opts["propriedade"],
                                        concurrency=opts["concurrency"],
                                        race_check=opts["race_check"],
                                        function=opts.get("function"),
@@ -280,6 +289,8 @@ def main(argv=None):
     ap.add_argument("--modelo", default="deepseek-flash")
     ap.add_argument("--base-url", default="https://api.deepseek.com")
     ap.add_argument("--max-iters", type=int, default=5)
+    ap.add_argument("--todas-as-propriedades", action="store_true",
+                    help="verifica todas as propriedades (modo de sempre), não só a do gabarito")
     a = ap.parse_args(argv)
 
     bracos = [b.strip().upper() for b in a.bracos.split(",") if b.strip()]
@@ -300,6 +311,8 @@ def main(argv=None):
             ap.error(f"conjunto sem opções definidas: {conj}")
         pasta = a.corpora / conj
         opts = {**PADRAO, **CONFIG_POR_CONJUNTO[conj]}
+        if a.todas_as_propriedades:
+            opts["propriedade"] = "todas"
         sel = selecionar(ler_gabarito(pasta), a.limite, a.semente)
         (a.saida / conj).mkdir(parents=True, exist_ok=True)
         meta["conjuntos"][conj] = dict(opcoes=opts, programas=[r["arquivo"] for r in sel])

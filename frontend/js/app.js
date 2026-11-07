@@ -193,6 +193,7 @@ async function launchRun(ev) {
     concurrency: !!document.getElementById("f-concurrency")?.checked,
     race_check: !!document.getElementById("f-race-check")?.checked,
     nan_check: !!document.getElementById("f-nan-check")?.checked,
+    propriedade: document.getElementById("f-propriedade")?.value || "todas",
   };
   // Opções de projeto (avançado): só incluídas quando preenchidas. As listas
   // vêm como texto (uma entrada por linha) e viram array; o backend ignora vazios.

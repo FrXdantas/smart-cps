@@ -53,6 +53,9 @@ class RunRequest(BaseModel):
     # opt-in: `--nan-check` (ponto flutuante que gera NaN). Off por padrão, pelo
     # mesmo motivo do unsigned: há código que produz e trata NaN de propósito.
     nan_check: bool = False
+    # propriedade verificada: todas (padrão, como sempre) | assercao | corrida | estouro.
+    # Os três últimos verificam SÓ essa propriedade (RC4 dos corpora com gabarito).
+    propriedade: str = "todas"
     # include paths (-I) p/ verificar uma unidade de um projeto real cujos headers
     # não estão na pasta do alvo (ex.: ggml/include do llama.cpp). Sem buildar nada.
     include_dirs: list[str] = []
@@ -93,6 +96,10 @@ def _folder_belongs_to(user: dict[str, Any], folder: str) -> bool:
 def create_run(req: RunRequest, user: dict = Depends(current_user)):
     if not os.path.isdir(req.folder):
         raise HTTPException(status_code=400, detail=f"pasta inválida: {req.folder}")
+    from ..core.verifiers.esbmc import PROPRIEDADES
+    if req.propriedade not in PROPRIEDADES:
+        raise HTTPException(status_code=400,
+                            detail=f"propriedade inválida: {req.propriedade} (use {', '.join(PROPRIEDADES)})")
     if not _folder_belongs_to(user, req.folder):
         raise HTTPException(
             status_code=403,

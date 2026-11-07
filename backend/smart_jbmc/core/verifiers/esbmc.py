@@ -30,11 +30,42 @@ RACE_FLAGS = ["--data-races-check", "--deadlock-check"]
 CONCURRENCY_FLAGS = THREAD_FLAGS + RACE_FLAGS
 
 
-def concurrency_flags(concurrency: bool, race_check: bool | None = None) -> list[str]:
+# Propriedade verificada (RC4 dos corpora, prometido no delta 4). "todas" é o
+# comportamento de sempre. Os outros valores verificam SÓ a propriedade do
+# gabarito, como o SV-COMP avalia cada tarefa e como o DSVerifier chama o ESBMC
+# (--no-bounds-check --no-pointer-check --no-div-by-zero-check): um vazamento ou
+# estouro inofensivo deixa de esconder o defeito estudado ou de virar falso positivo.
+PROPRIEDADES = ("todas", "assercao", "corrida", "estouro")
+
+
+def checagens(propriedade: str | None = None) -> list[str]:
+    """Checagens de segurança conforme a propriedade escolhida."""
+    p = propriedade or "todas"
+    if p not in PROPRIEDADES:
+        raise ValueError(f"propriedade inválida: {propriedade}")
+    if p == "todas":
+        return ["--overflow", "--memory-leak-check"]
+    flags = ["--no-standard-checks"]            # sem limites, ponteiro, divisão por zero
+    if p in ("corrida", "estouro"):
+        flags.append("--no-assertions")         # asserções não são a propriedade
+    if p == "estouro":
+        flags.append("--overflow")
+    return flags
+
+
+def concurrency_flags(concurrency: bool, race_check: bool | None = None,
+                      propriedade: str | None = None) -> list[str]:
     """Flags de threads. `race_check` None = igual a `concurrency` (runs e clientes
-    anteriores à separação). Procurar corrida implica explorar as threads."""
+    anteriores à separação). Procurar corrida implica explorar as threads.
+    Com `propriedade="corrida"` a corrida é a única propriedade: liga a busca de
+    corrida sem a de impasse. Com "assercao" ou "estouro", a busca de corrida sai."""
+    p = propriedade or "todas"
+    if p == "corrida":
+        return THREAD_FLAGS + ["--data-races-check"]
     if race_check is None:
         race_check = concurrency
+    if p in ("assercao", "estouro"):
+        race_check = False
     if race_check:
         return THREAD_FLAGS + RACE_FLAGS
     return list(THREAD_FLAGS) if concurrency else []
@@ -115,7 +146,7 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
               concurrency=False, solver="boolector", nice=10, race_check=None,
               unwinding_assertions=False, strategy=None,
               unsigned_overflow=False, nan_check=False, include_dirs=None, function=None,
-              max_mem_mb=None, no_slice=False) -> ToolResult:
+              max_mem_mb=None, no_slice=False, propriedade=None) -> ToolResult:
     """
     ESBMC com as flags do TASE2025 (CASTLE). Saída em TEXTO (ESBMC >= 8 não
     aceita --json-ui). O solver SMT é escolhido por argumento.
@@ -142,9 +173,8 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
 
     cmd = [
         _require("esbmc"), *files,
-        "--overflow",
-        "--memory-leak-check",
-        *property_flags(bool(concurrency_flags(concurrency, race_check))),
+        *checagens(propriedade),
+        *property_flags(bool(concurrency_flags(concurrency, race_check, propriedade))),
         "--show-stacktrace",
         "--timeout", str(timeout),
     ]
@@ -174,7 +204,7 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
     else:  # bounded
         cmd += ["--unwind", str(unwind), "--no-unwinding-assertions"]
     cmd += SOLVER_FLAGS.get(solver, SOLVER_FLAGS["boolector"])
-    cmd += concurrency_flags(concurrency, race_check)
+    cmd += concurrency_flags(concurrency, race_check, propriedade)
     # `no_slice`: só para obter o contraexemplo de threads com a intercalação. Com o
     # fatiamento padrão, o traço de uma condição de corrida traz apenas o estado da
     # asserção, sem as leituras e escritas de cada thread (linha do tempo, item 4).

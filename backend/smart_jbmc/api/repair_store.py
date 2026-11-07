@@ -73,6 +73,7 @@ def create_repair(run_id: str, opts: dict) -> dict:
     opts["include_dirs"] = list(cfg.get("include_dirs") or [])
     opts["function"] = cfg.get("function") or None
     opts["nan_check"] = bool(cfg.get("nan_check", False))
+    opts["propriedade"] = cfg.get("propriedade") or None   # oráculo checa a MESMA propriedade
     # Bound, tempo e solver também vêm da run, e não da tela no momento do
     # reparo: com unwind menor que o da run, o patch passava num regime mais
     # fraco do que o que achou o bug (visto no teste de 18/10/2026). Os valores
@@ -125,6 +126,7 @@ def _execute(run_id: str, targets: list, opts: dict, api_key: str | None = None,
             only_unrepaired=opts.get("only_unrepaired", False),
             unsigned_overflow=opts.get("unsigned_overflow", False),
             nan_check=opts.get("nan_check", False),
+            propriedade=opts.get("propriedade"),
             strategy=opts.get("strategy"),
             concurrency=opts.get("concurrency", False),
             race_check=opts.get("race_check"),
