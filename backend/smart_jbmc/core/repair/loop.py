@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass, field
 
 from ..classify import CWE_INFO
 from ..constants import C_FAMILY_EXTS, CPP_EXTS
-from ..counterexample import (explain_counterexample, parse_esbmc_trace_text,
+from ..counterexample import (explain_counterexample, parse_esbmc_trace_text, stack_trace_text,
                               parse_jbmc_trace_json)
 from . import llm, reachability
 from .regression import regression_check
@@ -213,8 +213,14 @@ class RepairResult:
     repaired_file: str | None = None
 
 
-def _next_cex(reg, ext, fixed_bug):
-    """Texto do novo contraexemplo (ou erro de compilação) para realimentar a LLM."""
+CEX_MODES = ("estruturado", "stack_trace")
+
+
+def _next_cex(reg, ext, fixed_bug, cex_mode="estruturado"):
+    """Texto do novo contraexemplo (ou erro de compilação) para realimentar a LLM.
+
+    `cex_mode="stack_trace"` (grupo B do experimento) entrega só o ponto da falha
+    e a cadeia de chamadas, sem valores, também nas iterações seguintes."""
     if reg.verdict == "ERROR" and reg.reason:
         return f"O patch anterior não compilou/verificou:\n{reg.reason}"
     if ext in C_FAMILY_EXTS:
@@ -224,6 +230,8 @@ def _next_cex(reg, ext, fixed_bug):
         # iterações não levava contraexemplo NOVO — o modelo re-tentava sem saber
         # por que o patch anterior continuou violando a propriedade.
         steps, violations = parse_jbmc_trace_json(reg.raw or "")
+    if cex_mode == "stack_trace":
+        return stack_trace_text(fixed_bug, steps, violations)
     return explain_counterexample(fixed_bug, steps, violations)
 
 
@@ -249,7 +257,8 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
                   should_cancel=None, unsigned_overflow=False, nan_check=False,
                   strategy=None, concurrency=False, race_check=None, include_dirs=None, function=None,
                   unit_sources=None, fault_files=None,
-                  entry_class=None, linha_defeito=None) -> RepairResult:
+                  entry_class=None, linha_defeito=None,
+                  cex_mode="estruturado") -> RepairResult:
     """Tenta reparar UM alvo. `patch_fn` é injetável (default: DeepSeek).
 
     `should_cancel`: callable opcional; se devolver True no início de uma
@@ -438,7 +447,7 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
             if reg.verdict == "TIMEOUT":
                 cur_unwind = max(1, cur_unwind // 2)   # refinamento (tática EVA)
 
-            cex = _next_cex(reg, ext, reg.fixed_bug or original_bug)
+            cex = _next_cex(reg, ext, reg.fixed_bug or original_bug, cex_mode)
             prev_patch, prev_verdict = patch_code, reg.verdict
 
         return result
@@ -484,7 +493,8 @@ def repair_run(targets, *, unwind, timeout, solver="boolector", max_iters=5,
                work_dir=None, on_progress=None, prior_results=None,
                only_unrepaired=False, on_checkpoint=None, should_cancel=None,
                unsigned_overflow=False, nan_check=False, strategy=None, concurrency=False, race_check=None,
-               include_dirs=None, function=None, patch_fn=None) -> dict:
+               include_dirs=None, function=None, patch_fn=None,
+               cex_mode="estruturado") -> dict:
     """Repara os alvos com BUG de uma run. Devolve resultados + agregados.
 
     Incremental/resumível:
@@ -538,7 +548,9 @@ def repair_run(targets, *, unwind, timeout, solver="boolector", max_iters=5,
                 on_progress(_idx, todo, i, n, tok_s)
         rr = repair_target(
             source_path=t["source"], original_bug=t["bug"],
-            counterexample=t.get("explanation") or "", unwind=unwind, timeout=timeout,
+            counterexample=((t.get("stack_trace") if cex_mode == "stack_trace" else None)
+                            or t.get("explanation") or ""),
+            unwind=unwind, timeout=timeout,
             solver=solver, max_iters=max_iters, model=model, base_url=base_url,
             api_key=api_key, dry_run=dry_run,
             work_dir=work_dir, on_progress=prog, should_cancel=should_cancel,
@@ -547,6 +559,7 @@ def repair_run(targets, *, unwind, timeout, solver="boolector", max_iters=5,
             unit_sources=t.get("unit_sources"), fault_files=t.get("fault_files"),
             entry_class=t.get("target"), patch_fn=patch_fn,
             linha_defeito=(t.get("violation") or {}).get("line"),
+            cex_mode=cex_mode,
         )
         results.append(asdict(rr))
         done += 1                   # avança o progresso só nos alvos que faltavam

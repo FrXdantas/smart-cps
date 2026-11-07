@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 from . import classify, compiler, scanner, stubs
 from .counterexample import (explain_counterexample, parse_esbmc_trace_text,
-                            parse_jbmc_trace_json, pick_violation)
+                            parse_jbmc_trace_json, pick_violation, stack_trace_text)
 from .metrics import aggregate_cwe, castle_score, infer_oracle_from_path
 from .process import limite_memoria_mb
 from .verifiers import (available_solvers, is_no_entry_point, run_esbmc,
@@ -48,6 +48,9 @@ class TargetResult:
     # na linha do defeito e todo resultado caía na linha 1 do arquivo.
     # {file, line, description, condition, aproximada} ou None.
     violation: dict | None = None
+    # Contexto do grupo B do experimento (BMC + stack trace): ponto da falha e
+    # cadeia de chamadas, sem valores. Ver counterexample.stack_trace_text.
+    stack_trace: str | None = None
 
 
 @dataclass
@@ -117,6 +120,7 @@ def _build_target(kind, target, source, raw, obj, elapsed,
     explanation = None
     fault_files: list[str] = []
     violation: dict | None = None
+    stack_trace: str | None = None
     if v.status == "BUG":
         if kind == "esbmc":
             steps, violations = parse_esbmc_trace_text(raw)
@@ -128,6 +132,7 @@ def _build_target(kind, target, source, raw, obj, elapsed,
         explanation = explain_counterexample(v.bug, steps, violations)
         fault_files = _fault_files(steps, violations)
         violation = _primary_violation(violations, v.bug)
+        stack_trace = stack_trace_text(v.bug, steps, violations)
     elif v.status == "ERROR" and kind == "jbmc" and is_no_entry_point(raw):
         # Classe de biblioteca (sem `main`): alvo INAPLICÁVEL, não erro. Fica
         # fora do denominador de ERROR para o relatório não virar ruído.
@@ -150,7 +155,7 @@ def _build_target(kind, target, source, raw, obj, elapsed,
         n_findings=v.n_findings, elapsed_s=elapsed,
         oracle=infer_oracle_from_path(source), explanation=explanation,
         unit_sources=list(unit_sources or []), fault_files=fault_files,
-        violation=violation,
+        violation=violation, stack_trace=stack_trace,
     )
 
 

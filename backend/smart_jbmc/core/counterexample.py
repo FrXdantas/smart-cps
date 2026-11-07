@@ -397,3 +397,47 @@ def explain_counterexample(bug, esbmc_steps, esbmc_violations) -> str:
             parts.append(f"  • estado {state} ({file}:{line})  {a}")
 
     return "\n".join(parts)
+
+
+# =====================================================
+# GRUPO B: "STACK TRACE" (sem valores, sem passos)
+# =====================================================
+
+# Funções do modelo do verificador que não pertencem ao programa.
+_FUNCOES_INTERNAS = re.compile(r"^(__ESBMC|__CPROVER|__VERIFIER|c::__|pthread_|_start$)")
+
+
+def cadeia_de_chamadas(steps, violations=None, limite: int = 10) -> list[str]:
+    """Funções do caminho até a falha, da mais recente para a mais antiga.
+
+    O ESBMC não emite pilha de chamadas. A aproximação usada é a ordem em que as
+    funções do programa aparecem no traço, de trás para frente, sem repetição:
+    é o que um programador reconstruiria de um crash com depurador. Não leva
+    valores de variáveis nem os passos.
+    """
+    nomes: list[str] = []
+    for st in reversed(steps or []):
+        f = str(st.get("function") or "").strip()
+        if not f or f == "-" or _FUNCOES_INTERNAS.match(f) or f in nomes:
+            continue
+        nomes.append(f)
+        if len(nomes) >= limite:
+            break
+    return nomes
+
+
+def stack_trace_text(bug, steps, violations) -> str:
+    """Contexto do grupo B (BMC + stack trace): categoria, ponto da falha e cadeia
+    de chamadas. Diferente de `explain_counterexample`, NÃO traz a condição que
+    falha nem os valores que levaram à violação: isso é o que o grupo C acrescenta.
+    """
+    parts = [EXPLAIN_TEMPLATES.get(bug or "Unknown Failure", EXPLAIN_TEMPLATES["Unknown Failure"])]
+    v = pick_violation(bug, violations or [])
+    if v and not (str(v.get("file", "-")) == "-" and str(v.get("line", "-")) == "-"):
+        parts.append(f"\nPonto da falha:\n  arquivo {v['file']}, linha {v['line']}\n"
+                     f"  descrição: {v['description']}")
+    cadeia = cadeia_de_chamadas(steps, violations)
+    if cadeia:
+        parts.append("\nPilha de chamadas (da mais recente para a mais antiga):")
+        parts.extend(f"  em {f}" for f in cadeia)
+    return "\n".join(parts)

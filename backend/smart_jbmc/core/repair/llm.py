@@ -191,20 +191,14 @@ def _strip_fences(text):
     return _FIX_MARKER_RE.sub(r"\1<---\2", text)
 
 
-def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
-                   model=None, base_url=None, api_key=None,
-                   prev_patch=None, prev_cex=None, prev_verdict=None,
-                   timeout=None, max_tokens=None, temperature=0.2, dry_run=False,
-                   file_name=None, context_files=None) -> dict:
-    """Pede um patch a um provedor OpenAI-compatível.
+def chat(messages, *, code_len_hint: str = "", model=None, base_url=None, api_key=None,
+         timeout=None, max_tokens=None, temperature=0.2) -> dict:
+    """Uma chamada /chat/completions a um provedor OpenAI-compatível.
 
-    `base_url`/`api_key`/`model` vêm da UI por requisição. Sem modelo, vale o
-    padrão do provedor. Sem chave, só o provedor local funciona. dry_run (ou env SMART_JBMC_LLM_DRYRUN=1) devolve o código
-    inalterado, sem chamar a API (testar a fiação sem saldo/chave).
+    Base comum do reparo (`generate_patch`) e do grupo D do experimento
+    (`llm_puro`): mesmas tentativas com backoff, mesmo 429 -> LLMRateLimited,
+    mesma leitura do finish_reason (RR1). Devolve o texto CRU da resposta.
     """
-    if dry_run or os.environ.get("SMART_JBMC_LLM_DRYRUN") == "1":
-        return {"patch": code, "usage": None, "model": "dry-run", "ms": 0}
-
     if requests is None:
         raise LLMUnavailable("'requests' não instalado.")
     base = (base_url or DEEPSEEK_BASE_URL).rstrip("/")
@@ -221,15 +215,12 @@ def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
         )
     model = model or (LOCAL_DEFAULT_MODEL if is_local else default_model())
     timeout = timeout or DEFAULT_LLM_TIMEOUT
-    max_tokens = max_tokens or max_tokens_for(code)
+    max_tokens = max_tokens or max_tokens_for(code_len_hint)
     headers = {"Content-Type": "application/json"}
     if key:
         headers["Authorization"] = f"Bearer {key}"
     payload = {
-        "model": model,
-        "messages": _messages(bug, cwe_info, cert_rule, code, counterexample,
-                              lang, prev_patch, prev_cex, prev_verdict,
-                              file_name=file_name, context_files=context_files),
+        "model": model, "messages": messages,
         "temperature": temperature, "max_tokens": max_tokens, "stream": False,
     }
     import time
@@ -267,6 +258,28 @@ def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
     # RR1: "length" = o provedor cortou a resposta no max_tokens. O código veio
     # incompleto e não pode ir ao oráculo como se fosse um patch.
     truncated = choice.get("finish_reason") == "length"
-    return {"patch": _strip_fences(content), "usage": data.get("usage"),
+    return {"content": content, "usage": data.get("usage"),
             "model": data.get("model", model), "ms": ms,
             "truncated": truncated, "max_tokens": max_tokens}
+
+
+def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
+                   model=None, base_url=None, api_key=None,
+                   prev_patch=None, prev_cex=None, prev_verdict=None,
+                   timeout=None, max_tokens=None, temperature=0.2, dry_run=False,
+                   file_name=None, context_files=None) -> dict:
+    """Pede um patch a um provedor OpenAI-compatível.
+
+    `base_url`/`api_key`/`model` vêm da UI por requisição. Sem modelo, vale o
+    padrão do provedor. Sem chave, só o provedor local funciona. dry_run (ou env SMART_JBMC_LLM_DRYRUN=1) devolve o código
+    inalterado, sem chamar a API (testar a fiação sem saldo/chave).
+    """
+    if dry_run or os.environ.get("SMART_JBMC_LLM_DRYRUN") == "1":
+        return {"patch": code, "usage": None, "model": "dry-run", "ms": 0}
+    out = chat(_messages(bug, cwe_info, cert_rule, code, counterexample,
+                         lang, prev_patch, prev_cex, prev_verdict,
+                         file_name=file_name, context_files=context_files),
+               code_len_hint=code, model=model, base_url=base_url, api_key=api_key,
+               timeout=timeout, max_tokens=max_tokens, temperature=temperature)
+    out["patch"] = _strip_fences(out.pop("content"))
+    return out

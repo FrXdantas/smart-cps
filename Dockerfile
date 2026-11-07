@@ -71,6 +71,7 @@ RUN python3 -m venv /opt/venv \
 COPY backend/  /app/backend/
 COPY frontend/ /app/frontend/
 COPY tools/smart-jbmc-admin.py /app/tools/smart-jbmc-admin.py
+COPY tools/executar_bracos.py /app/tools/executar_bracos.py
 # suíte de testes embarcada: `./subir.sh testes` valida a instalação offline
 COPY tests/ /app/tests/
 COPY pyproject.toml /app/pyproject.toml

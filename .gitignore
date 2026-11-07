@@ -27,6 +27,7 @@ node_modules/
 tools/*
 !tools/.gitkeep
 !tools/smart-jbmc-admin.py
+!tools/executar_bracos.py
 
 # Editores
 .vscode/
