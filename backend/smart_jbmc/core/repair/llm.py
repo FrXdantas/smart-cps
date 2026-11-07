@@ -140,7 +140,7 @@ def _context_block(context_files) -> str:
 
 def _messages(bug, cwe_info, cert_rule, code, counterexample, lang,
               prev_patch, prev_cex, prev_verdict,
-              file_name=None, context_files=None):
+              file_name=None, context_files=None, trecho=None):
     ctx = (
         f"Linguagem: {lang}\n"
         f"Categoria do bug: {bug}\n"
@@ -159,6 +159,11 @@ def _messages(bug, cwe_info, cert_rule, code, counterexample, lang,
             "Corrija de forma diferente, considerando esse feedback.\n"
         )
     rotulo = f"ARQUIVO A CORRIGIR ({file_name})" if file_name else "PROGRAMA A CORRIGIR"
+    if trecho:
+        # RR4: o arquivo não cabe no teto de saída; só a função do defeito vai e volta
+        rotulo = (f"FUNÇÃO A CORRIGIR: {trecho}. O arquivo é grande demais para ser devolvido "
+                  "inteiro. Devolva SOMENTE esta função, completa e corrigida, com o mesmo nome "
+                  "e a mesma assinatura, sem o resto do arquivo")
     user = (
         f"{ctx}\n--- CONTRAEXEMPLO DO VERIFICADOR ---\n{counterexample}\n"
         f"{_context_block(context_files)}"
@@ -267,7 +272,7 @@ def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
                    model=None, base_url=None, api_key=None,
                    prev_patch=None, prev_cex=None, prev_verdict=None,
                    timeout=None, max_tokens=None, temperature=0.2, dry_run=False,
-                   file_name=None, context_files=None) -> dict:
+                   file_name=None, context_files=None, trecho=None) -> dict:
     """Pede um patch a um provedor OpenAI-compatível.
 
     `base_url`/`api_key`/`model` vêm da UI por requisição. Sem modelo, vale o
@@ -278,7 +283,7 @@ def generate_patch(*, bug, cwe_info, cert_rule, code, counterexample, lang,
         return {"patch": code, "usage": None, "model": "dry-run", "ms": 0}
     out = chat(_messages(bug, cwe_info, cert_rule, code, counterexample,
                          lang, prev_patch, prev_cex, prev_verdict,
-                         file_name=file_name, context_files=context_files),
+                         file_name=file_name, context_files=context_files, trecho=trecho),
                code_len_hint=code, model=model, base_url=base_url, api_key=api_key,
                timeout=timeout, max_tokens=max_tokens, temperature=temperature)
     out["patch"] = _strip_fences(out.pop("content"))

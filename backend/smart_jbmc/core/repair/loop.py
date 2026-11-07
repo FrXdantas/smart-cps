@@ -17,7 +17,7 @@ from ..classify import CWE_INFO
 from ..constants import C_FAMILY_EXTS, CPP_EXTS
 from ..counterexample import (explain_counterexample, parse_esbmc_trace_text, stack_trace_text,
                               parse_jbmc_trace_json)
-from . import llm, reachability
+from . import llm, reachability, trecho as trecho_mod
 from .regression import regression_check
 
 LANG_BY_EXT = {".c": "C", ".java": "Java", ".kt": "Kotlin"}
@@ -211,6 +211,7 @@ class RepairResult:
     # Arquivo REALMENTE reparado. Difere de `source` quando o bug foi reportado no
     # alvo do entrypoint mas o defeito estava em outro arquivo da unidade.
     repaired_file: str | None = None
+    modo: str = "arquivo"             # "funcao" quando só a função do defeito foi à LLM (RR4)
 
 
 CEX_MODES = ("estruturado", "stack_trace")
@@ -314,7 +315,16 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
     cur_unwind = unwind
     cex = counterexample
     prev_patch = prev_verdict = None
-    cur_max_tokens = llm.max_tokens_for(code)   # RR2; dobra após resposta truncada (RR3)
+    # RR4: arquivo que não cabe no teto de saída -> só a função do defeito vai à LLM
+    trecho = None
+    if ext in C_FAMILY_EXTS and linha_defeito and trecho_mod.precisa_trecho(code):
+        trecho = trecho_mod.funcao_que_contem(code, linha_defeito)
+        result.modo = "funcao" if trecho else "arquivo"
+    texto_llm = trecho_mod.extrair(code, trecho[0], trecho[1]) if trecho else code
+    desc_trecho = (f"{trecho[2]} (linhas {trecho[0] + 1} a {trecho[1] + 1} de "
+                   f"{code.count(chr(10)) + 1})") if trecho else None
+    cur_max_tokens = llm.max_tokens_for(texto_llm)   # RR2; dobra após resposta truncada (RR3)
+    prev_llm = None                                  # o que a LLM devolveu na iteração anterior
 
     try:
         for i in range(1, max_iters + 1):
@@ -326,13 +336,15 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
             try:
                 gen = patch_fn(
                     bug=original_bug, cwe_info=cwe_info, cert_rule=cert_rule,
-                    code=code, counterexample=cex, lang=lang, model=model,
+                    code=texto_llm, counterexample=cex, lang=lang, model=model,
                     base_url=base_url, api_key=api_key,
-                    prev_patch=prev_patch, prev_cex=(cex if prev_patch else None),
+                    prev_patch=(prev_llm if trecho else prev_patch),
+                    prev_cex=(cex if prev_patch else None),
                     prev_verdict=prev_verdict, dry_run=dry_run,
                     file_name=os.path.basename(repair_path),
                     context_files=context_files,
                     max_tokens=cur_max_tokens,
+                    **({"trecho": desc_trecho} if trecho else {}),
                 )
             except llm.LLMRateLimited:
                 # cota/limite do provedor (429) — erro de INFRAESTRUTURA, não de reparo.
@@ -373,7 +385,18 @@ def repair_target(*, source_path, original_bug, counterexample, unwind, timeout,
                 cur_max_tokens = min(llm.MAX_TOKENS_CAP, cur_max_tokens * 2)
                 continue
 
-            patch_code = gen.get("patch") or code
+            patch_code = gen.get("patch") or texto_llm
+            prev_llm = patch_code
+            if trecho:
+                if not trecho_mod.parece_uma_funcao(patch_code):
+                    result.attempts.append(asdict(
+                        RepairAttempt(i, "INVALID_PATCH", None, gen.get("model", "?"), gen_ms)))
+                    result.iterations = i
+                    cex = ("O patch anterior foi REJEITADO: era esperada UMA função completa "
+                           f"({trecho[2]}), sem o resto do arquivo.")
+                    prev_patch, prev_verdict = patch_code, "INVALID_PATCH"
+                    continue
+                patch_code = trecho_mod.recolocar(code, trecho[0], trecho[1], patch_code)
             if ext in C_FAMILY_EXTS:
                 patch_code = ensure_c_headers(patch_code)  # normalização de compilação
             result.final_code = patch_code
