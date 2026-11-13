@@ -237,7 +237,25 @@ def _funcao_da_violacao(violation: dict | None) -> str | None:
     return pilha[0].get("funcao") if pilha else None
 
 
-def comparar(achados: list[dict], violation: dict | None, variavel: str | None) -> str:
+_NAO_VARIAVEL = {"signed", "unsigned", "int", "char", "short", "long", "_Bool", "bool", "float",
+                 "double", "void", "const", "volatile", "struct", "union", "sizeof", "return",
+                 "overflow", "RACE_CHECK", "SAME_OBJECT", "VALID_OBJECT", "INVALID_POINTER"}
+
+
+def variaveis_da_condicao(violation: dict | None) -> set[str]:
+    """Identificadores da condição violada. Numa asserção sobre estado compartilhado (grbl:
+    sys_rt_exec_state & (1 << 3)), a corrida que o TSan acusa nessa variável é a causa da
+    falha, mesmo quando a intercalação exata não acontece na execução real."""
+    cond = str((violation or {}).get("condition") or "")
+    return {x for x in re.findall(r"[A-Za-z_]\w*", cond) if x not in _NAO_VARIAVEL}
+
+
+def usa_threads(files) -> bool:
+    return any("pthread_create" in (_ler(f, 50_000_000) or "") for f in files)
+
+
+def comparar(achados: list[dict], violation: dict | None, variavel: str | None,
+             variaveis_cond: set[str] | None = None) -> str:
     """RT7/D4: REPRODUZIDO se algum relato bate com a linha, a função ou a variável do
     contraexemplo; REPRODUZIDO_OUTRO_PONTO se o sanitizer acusou outra coisa."""
     if not achados:
@@ -246,6 +264,8 @@ def comparar(achados: list[dict], violation: dict | None, variavel: str | None) 
     arq, lin, func = v.get("file"), v.get("line"), _funcao_da_violacao(v)
     for a in achados:
         if variavel and a.get("variavel") == variavel:
+            return "REPRODUZIDO"
+        if variaveis_cond and a.get("tipo") == "tsan" and a.get("variavel") in variaveis_cond:
             return "REPRODUZIDO"
         pontos = [a] + list(a.get("acessos") or [])
         for p in pontos:
@@ -321,14 +341,20 @@ def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
     files = list(alvo_files) if isinstance(alvo_files, (list, tuple)) else [alvo_files]
     os.makedirs(workdir, exist_ok=True)
     san = sanitizer_para(bug, cwe_id, violation)
-    variavel = variavel_da_corrida(violation) if san == "tsan" else None
     nativo = pasta_nativa(files[0])
+    # Programa com threads: a falha (mesmo de asserção) costuma depender da intercalação, que o
+    # caso de teste não fixa. O TSan acusa a corrida que causa a falha sem precisar dela.
+    if san != "tsan" and usa_threads(files + ([os.path.join(r, f) for r, _, fs in os.walk(nativo)
+                                                for f in fs if f.endswith(".c")] if nativo else [])):
+        san = "tsan"
+    variavel = variavel_da_corrida(violation) if san == "tsan" else None
+    variaveis_cond = variaveis_da_condicao(violation) if san == "tsan" else set()
     res = dict(modo="driver nativo" if nativo else "caso de teste", sanitizer=san,
                veredito=None, motivo=None, variavel=variavel, comandos=[], achados=[],
                execucoes=0, reproduziu_em=0, saida="", caso_de_teste=None,
                tempos=dict(caso_de_teste_s=None, compilacao_s=None, execucao_s=None, total_s=None),
                pasta=workdir, arquivos=[], tentativas=[], esbmc_gerou_caso=None,
-               origem_reproducao=None)
+               origem_reproducao=None, pasta_nativa=nativo)
 
     def fim(veredito, motivo=None):
         res["veredito"], res["motivo"] = veredito, motivo
@@ -487,7 +513,7 @@ def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
             rc, out, dt = _rodar(cmd, workdir, timeout_execucao, env=env)
             t_exec += dt
             achados = ler_relatos(out)
-            v = comparar(achados, violation, variavel)
+            v = comparar(achados, violation, variavel, variaveis_cond)
             vereditos.append(v)
             if achados and (v == "REPRODUZIDO" or not res["achados"]):
                 res["achados"] = achados

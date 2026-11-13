@@ -250,9 +250,17 @@ def download_reprodutor(run_id: str, indice: int, user: dict = Depends(current_u
         for dirpath, _, filenames in os.walk(pasta):
             for fn in sorted(filenames):
                 full = Path(dirpath) / fn
-                if re.fullmatch(r"reprodutor(_\d+)?", fn) or fn.endswith(".o") or full.is_symlink():
+                if re.fullmatch(r"reprodutor(_[A-Za-z0-9]+)?", fn) or fn.endswith(".o") or full.is_symlink():
                     continue
                 z.write(full, arcname=f"{base}/{full.relative_to(pasta)}")
+        # driver nativo (código real usado na execução): é o que a issue precisa anexar
+        nat = rep.get("pasta_nativa")
+        if nat and os.path.isdir(nat):
+            for dirpath, _, filenames in os.walk(nat):
+                for fn in sorted(filenames):
+                    full = Path(dirpath) / fn
+                    if not full.is_symlink():
+                        z.write(full, arcname=f"{base}/nativo/{full.relative_to(nat)}")
     return Response(content=buf.getvalue(), media_type="application/zip",
                     headers={"Content-Disposition": f'attachment; filename="{base}.zip"'})
 

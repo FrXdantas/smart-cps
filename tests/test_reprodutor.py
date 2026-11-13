@@ -238,3 +238,37 @@ def test_function_gera_main_de_entrada(tmp_path):
                  violation={"file": "ut.c", "line": 3}, gerar_caso_de_teste=caso,
                  function="unit_test")
     assert r["veredito"] == "REPRODUZIDO", r
+
+
+def test_corrida_na_variavel_da_assercao_conta():
+    viol = {"file": "grbl.c", "line": 38,
+            "condition": "(_Bool)((signed int)sys_rt_exec_state & 1 << 3)"}
+    assert rp.variaveis_da_condicao(viol) == {"sys_rt_exec_state"}
+    tsan = TSAN.replace("xSchedulerEnd", "sys_rt_exec_state")
+    assert rp.comparar(rp.ler_relatos(tsan), viol, None, {"sys_rt_exec_state"}) == "REPRODUZIDO"
+    assert rp.comparar(rp.ler_relatos(TSAN), viol, None, {"sys_rt_exec_state"}) == "REPRODUZIDO_OUTRO_PONTO"
+
+
+@pytest.mark.skipif(not TEM_GCC, reason="gcc ausente")
+def test_assercao_com_threads_usa_tsan(tmp_path):
+    prog = tmp_path / "rmw.c"
+    prog.write_text(textwrap.dedent("""\
+        #include <pthread.h>
+        #include <unistd.h>
+        volatile int estado;
+        void *isr(void *p) { usleep(500); estado |= 2; return 0; }
+        int main(void) { pthread_t t; pthread_create(&t, 0, isr, 0);
+          estado |= 8; usleep(2000); pthread_join(t, 0);
+          __ESBMC_assert(estado & 8, "pedido nao pode se perder"); return 0; }
+        """))
+
+    def caso(d):
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, "test_case.c"), "w").write("void __VERIFIER_assume(int c){(void)c;}\n")
+        return ""
+    r = rp.gerar(str(prog), str(tmp_path / "r"), bug="Assertion Failure", cwe_id="CWE-617",
+                 violation={"file": "rmw.c", "line": 7, "condition": "(_Bool)(estado & 8)"},
+                 gerar_caso_de_teste=caso, n_execucoes_tsan=2)
+    assert r["sanitizer"] == "tsan"
+    if rp.setarch_disponivel():
+        assert r["veredito"] == "REPRODUZIDO", r
