@@ -140,8 +140,8 @@ o release oficial 8.6 do GitHub, que é a mesma versão com os mesmos solvers.
 ### Sem script (Docker puro)
 
 ```bash
-docker build -t smartcps:2.7-cps .
-docker run -d --name smartcps -p 8100:8000 -v smartcps-dados:/app/data smartcps:2.7-cps
+docker build -t smartcps:2.8-cps .
+docker run -d --name smartcps --security-opt seccomp=$PWD/docker/seccomp-smartcps.json -p 8100:8000 -v smartcps-dados:/app/data smartcps:2.8-cps
 ```
 
 ou `docker compose up -d` (usa o `docker-compose.yml`).
