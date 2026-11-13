@@ -407,7 +407,7 @@ def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
             incs += ["-I", d]
         if not fontes:
             return fim("FALHA_COMPILACAO", f"pasta nativa sem .c: {nativo}")
-        cmd = base + incs + fontes + ["-o", exe]
+        cmd = base + incs + fontes + ["-o", exe, "-lm"]
         res["comandos"].append(" ".join(cmd))
         rc, out, dt = _rodar(cmd, workdir, 300)
         res["tempos"]["compilacao_s"] = dt
@@ -503,7 +503,7 @@ def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
             num = re.sub(r"\D", "", caso) or ("cx" if caminho == cx_path else "")
             exe = os.path.join(workdir, "reprodutor" + (f"_{num}" if num else ""))
             cmd = (base + incs + extra_harness + ["-include", cab] + files
-                   + [tc_o, pad_o] + objs_extra + ["-o", exe])
+                   + [tc_o, pad_o] + objs_extra + ["-o", exe, "-lm"])   # DSVerifier usa math.h
             res["comandos"].append(" ".join(cmd))
             rc, out, _ = _rodar(cmd, workdir, 300)
             if rc != 0:
