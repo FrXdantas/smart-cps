@@ -281,3 +281,23 @@ def test_cabecalho_respeita_definicao_do_programa(tmp_path):
     assert defs == {"__VERIFIER_assume"}
     cab = rp.cabecalho_nativo(defs)
     assert "#define __VERIFIER_assume(" not in cab and "#define __ESBMC_assume(" in cab
+
+
+@pytest.mark.skipif(not TEM_GCC, reason="gcc ausente")
+def test_cabecalho_nao_conflita_com_programa_pre_processado(tmp_path):
+    """SV-COMP .i: declarações da glibc dentro do arquivo (A2 dava 'conflicting types')."""
+    prog = tmp_path / "pp.c"
+    prog.write_text("typedef unsigned long pthread_t;\n"
+                    "extern int pthread_create(pthread_t *, const void *, void *(*)(void *), void *);\n"
+                    "extern int dprintf(int __fd, const char *__restrict __fmt, ...);\n"
+                    "extern void abort(void) __attribute__((__noreturn__));\n"
+                    "int x;\nint main(void) { __ESBMC_atomic_begin(); x = 1; __ESBMC_atomic_end();\n"
+                    "  __ESBMC_assert(x == 2, \"x\"); return 0; }\n")
+
+    def caso(d):
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, "test_case.c"), "w").write("void __VERIFIER_assume(int c){(void)c;}\n")
+        return ""
+    r = rp.gerar(str(prog), str(tmp_path / "r"), bug="Assertion Failure", cwe_id="CWE-617",
+                 violation={"file": "pp.c", "line": 7}, gerar_caso_de_teste=caso)
+    assert r["veredito"] == "REPRODUZIDO", r

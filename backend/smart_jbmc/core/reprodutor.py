@@ -49,26 +49,31 @@ _NONDET = {
 CABECALHO_NATIVO = r"""/* smart_nativo.h: gerado pelo SMART CPS (reprodutor). Não editar. */
 #ifndef SMART_NATIVO_H
 #define SMART_NATIVO_H
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <pthread.h>
-static pthread_mutex_t __smart_trava = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+/* Sem #include: os programas do SV-COMP chegam pré-processados (.i) com as declarações da glibc
+   dentro do arquivo, e incluir <stdio.h> ou <pthread.h> aqui dava "conflicting types". */
+extern int dprintf(int, const char *, ...);
+extern void abort(void);
+extern void _exit(int);
+static volatile int __smart_trava = 0;
+static __thread int __smart_prof = 0;
+static void __smart_lock(void) {
+  if (__smart_prof++ == 0) while (__atomic_test_and_set(&__smart_trava, __ATOMIC_ACQUIRE)) {}
+}
+static void __smart_unlock(void) {
+  if (--__smart_prof == 0) __atomic_clear(&__smart_trava, __ATOMIC_RELEASE);
+}
 static void __smart_falha(const char *arq, int lin, const char *msg) {
-  fprintf(stderr, "SMART_ASSERT %s:%d: %s\n", arq, lin, msg); fflush(stderr); abort();
+  dprintf(2, "SMART_ASSERT %s:%d: %s\n", arq, lin, msg); abort();
 }
 static void __smart_inviavel(const char *arq, int lin) {
-  fprintf(stderr, "SMART_INVIAVEL %s:%d\n", arq, lin); fflush(stderr); _exit(%(inviavel)d);
+  dprintf(2, "SMART_INVIAVEL %s:%d\n", arq, lin); _exit(%(inviavel)d);
 }
 #define __ESBMC_assert(c, msg) ((c) ? (void)0 : __smart_falha(__FILE__, __LINE__, (msg)))
 #define __ESBMC_assume(c) ((c) ? (void)0 : __smart_inviavel(__FILE__, __LINE__))
 #define __VERIFIER_assume(c) __ESBMC_assume(c)
 #define __VERIFIER_error() __smart_falha(__FILE__, __LINE__, "__VERIFIER_error")
-#define __ESBMC_atomic_begin() pthread_mutex_lock(&__smart_trava)
-#define __ESBMC_atomic_end() pthread_mutex_unlock(&__smart_trava)
+#define __ESBMC_atomic_begin() __smart_lock()
+#define __ESBMC_atomic_end() __smart_unlock()
 #define __VERIFIER_atomic_begin() __ESBMC_atomic_begin()
 #define __VERIFIER_atomic_end() __ESBMC_atomic_end()
 %(nondet)s
