@@ -370,7 +370,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
                 alvo, workdir, bug=tr.bug, cwe_id=tr.cwe_id, violation=tr.violation,
                 include_dirs=include_dirs, gerar_caso_de_teste=_caso,
                 n_execucoes_tsan=n_execucoes_tsan, timeout_execucao=min(60, max(10, timeout)),
-                raw_cex=raw)
+                raw_cex=raw, function=function)
             tr.reprodutor["pasta"] = os.path.relpath(workdir, build_root)
         except Exception as e:  # noqa: BLE001 — reprodutor nunca derruba a run
             tr.reprodutor = {"veredito": "INCONCLUSIVO", "motivo": f"erro interno: {e}"}

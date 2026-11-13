@@ -220,3 +220,21 @@ def test_contraexemplo_reproduz_quando_ctest_falha(tmp_path):
     assert r["veredito"] == "REPRODUZIDO", r
     assert [t["veredito"] for t in r["tentativas"]] == ["NAO_REPRODUZIDO", "REPRODUZIDO"]
     assert r["origem_reproducao"] == "valores do contraexemplo (SMART)"
+
+
+@pytest.mark.skipif(not TEM_GCC, reason="gcc ausente")
+def test_function_gera_main_de_entrada(tmp_path):
+    prog = tmp_path / "ut.c"
+    prog.write_text("int nondet_int(void);\nvoid unit_test(void) { int a = nondet_int();\n"
+                    "  __ESBMC_assert(a != 7, \"a nao pode ser 7\"); }\n")
+
+    def caso(d):
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, "test_case.c"), "w").write(
+            "void __VERIFIER_assume(int c){(void)c;}\n"
+            "int __VERIFIER_nondet_int(void){ return 7; }\n")
+        return ""
+    r = rp.gerar(str(prog), str(tmp_path / "r"), bug="Assertion Failure", cwe_id="CWE-617",
+                 violation={"file": "ut.c", "line": 3}, gerar_caso_de_teste=caso,
+                 function="unit_test")
+    assert r["veredito"] == "REPRODUZIDO", r

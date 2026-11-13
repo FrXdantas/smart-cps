@@ -310,7 +310,7 @@ def _ler(path, limite=20000):
 
 def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
           gerar_caso_de_teste=None, n_execucoes_tsan=5, timeout_execucao=30,
-          raw_cex=None) -> dict:
+          raw_cex=None, function=None) -> dict:
     """Monta e executa o reprodutor de UM alvo com BUG. Nunca levanta exceção.
 
     `gerar_caso_de_teste(dir_saida) -> str` roda o ESBMC com as opções da run mais
@@ -423,6 +423,22 @@ def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
             rc, out, _ = _rodar(cmd, workdir, 120)
             return (o if rc == 0 else None), out
 
+        # --function: o ESBMC entra pela função escolhida; fora dele é preciso um main que a
+        # chame. O main do harness (se houver) é renomeado para não colidir.
+        extra_harness: list[str] = []
+        if function and function != "main":
+            ent = os.path.join(workdir, "smart_entrada.c")
+            with open(ent, "w", encoding="utf-8") as f:
+                f.write("/* smart_entrada.c: gerado pelo SMART CPS (reprodutor, --function). */\n"
+                        f"extern void {function}();\nint main(void) {{ {function}(); return 0; }}\n")
+            ent_o, out = _obj(ent)
+            if not ent_o:
+                res["saida"] = out[-6000:]
+                return fim("FALHA_COMPILACAO", "smart_entrada.c não compilou")
+            objs_extra = [ent_o]
+            extra_harness = ["-Dmain=__smart_main_do_harness"]
+        else:
+            objs_extra = []
         pad_o, out = _obj(pad)
         if not pad_o:
             res["saida"] = out[-6000:]
@@ -438,7 +454,8 @@ def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
                 continue
             num = re.sub(r"\D", "", caso) or ("cx" if caminho == cx_path else "")
             exe = os.path.join(workdir, "reprodutor" + (f"_{num}" if num else ""))
-            cmd = base + incs + ["-include", cab] + files + [tc_o, pad_o, "-o", exe]
+            cmd = (base + incs + extra_harness + ["-include", cab] + files
+                   + [tc_o, pad_o] + objs_extra + ["-o", exe])
             res["comandos"].append(" ".join(cmd))
             rc, out, _ = _rodar(cmd, workdir, 300)
             if rc != 0:
