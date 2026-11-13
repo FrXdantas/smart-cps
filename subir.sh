@@ -17,7 +17,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-IMAGEM="${SMARTCPS_IMAGEM:-smartcps:2.7-cps}"
+IMAGEM="${SMARTCPS_IMAGEM:-smartcps:2.8-cps}"
 NOME="smartcps"
 VOLUME="smartcps-dados"
 PORTA="${PORTA:-8100}"
@@ -68,8 +68,13 @@ subir() {
   else
     rede=(-p "$PORTA:8000" --add-host host.docker.internal:host-gateway)
   fi
+  # Perfil seccomp = padrão do Docker + personality(ADDR_NO_RANDOMIZE). O ThreadSanitizer
+  # do reprodutor precisa de `setarch -R` em kernel com ASLR alto; o perfil padrão bloqueia.
+  local seg=()
+  [[ -f "$PWD/docker/seccomp-smartcps.json" ]] && seg=(--security-opt "seccomp=$PWD/docker/seccomp-smartcps.json")
   docker run -d --name "$NOME" \
     --restart unless-stopped \
+    "${seg[@]}" \
     "${rede[@]}" \
     -e HOST_PORT="$PORTA" \
     -v "$VOLUME:/app/data" \

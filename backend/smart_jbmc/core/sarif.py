@@ -196,6 +196,12 @@ def build_sarif(run_record: dict, repair_record: dict | None = None,
                 "violation": t.get("violation"),
             },
         }
+        rep = t.get("reprodutor")
+        if rep:
+            # RT9: reprodutor (caso de teste do ESBMC + sanitizer), sem a saída bruta
+            res["properties"]["reprodutor"] = {k: rep.get(k) for k in (
+                "veredito", "motivo", "modo", "sanitizer", "variavel", "origem_reproducao",
+                "execucoes", "reproduziu_em", "tempos", "tentativas", "achados")}
         fix = _fix_for(t, repair_idx.get(t.get("source")))
         if fix:
             res["fixes"] = fix

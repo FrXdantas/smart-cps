@@ -146,7 +146,8 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
               concurrency=False, solver="boolector", nice=10, race_check=None,
               unwinding_assertions=False, strategy=None,
               unsigned_overflow=False, nan_check=False, include_dirs=None, function=None,
-              max_mem_mb=None, no_slice=False, propriedade=None) -> ToolResult:
+              max_mem_mb=None, no_slice=False, propriedade=None,
+              extra_args=None) -> ToolResult:
     """
     ESBMC com as flags do TASE2025 (CASTLE). Saída em TEXTO (ESBMC >= 8 não
     aceita --json-ui). O solver SMT é escolhido por argumento.
@@ -210,6 +211,9 @@ def run_esbmc(filec, unwind=DEFAULT_UNWIND, timeout=DEFAULT_TIMEOUT,
     # asserção, sem as leituras e escritas de cada thread (linha do tempo, item 4).
     if no_slice:
         cmd.append("--no-slice")
+    # `extra_args`: o reprodutor (incremento 4) acrescenta --generate-ctest-testcase às
+    # MESMAS opções da verificação, para o caso de teste sair do mesmo contraexemplo.
+    cmd += list(extra_args or [])
     # `max_mem_mb` vem do orquestrador já rateado pelo `jobs`; sozinho, o
     # verificador assume que é o único rodando.
     mem = limite_memoria_mb() if max_mem_mb is None else max_mem_mb

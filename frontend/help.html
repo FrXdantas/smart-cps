@@ -185,6 +185,27 @@ int main(void) {
                 exploração das threads e a busca de corrida, sem impasse) e <em>só estouro aritmético</em>.
                 Serve para medir com programas de gabarito conhecido, em que um vazamento inofensivo não
                 pode esconder o defeito estudado. O reparo herda a escolha.</li>
+              <li><strong>Gerar reprodutor</strong>: para cada arquivo C com BUG, a ferramenta tenta mostrar
+                o defeito numa execução real. O ESBMC roda de novo com as mesmas opções e gera o caso de
+                teste (<code>--generate-ctest-testcase</code>), com os valores de entrada do
+                contraexemplo. O arquivo é compilado com o gcc junto com um sanitizer e executado:
+                ThreadSanitizer para corrida e impasse, AddressSanitizer e UBSan para estouro, memória e
+                asserção. Com threads, o programa roda 5 vezes, porque a ordem real das threads muda de
+                uma execução para outra. Também é tentado um segundo caso de teste, montado pela
+                ferramenta com os valores lidos do contraexemplo na ordem das chamadas
+                <code>nondet_*</code>. A tela informa qual dos dois reproduziu.
+                <br>Quando o harness usa um modelo do ambiente que só faz sentido dentro do ESBMC (por
+                exemplo, um <code>sigwait</code> de modelo), coloque ao lado do arquivo uma pasta
+                <code>&lt;nome do arquivo&gt;_nativo/</code> (ou <code>nativo/</code>) com um programa que
+                use o código real. A ferramenta compila todos os <code>.c</code> dessa pasta com o
+                sanitizer e não verifica o que está dentro dela.
+                <br>O veredito é <em>REPRODUZIDO</em> quando o sanitizer acusa a mesma linha, a mesma função
+                ou a mesma variável (corrida) do contraexemplo. Os outros vereditos são <em>REPRODUZIDO_OUTRO_PONTO</em>
+                (o sanitizer acusou outro lugar), <em>NAO_REPRODUZIDO</em>, <em>SEM_CASO_DE_TESTE</em>,
+                <em>FALHA_COMPILACAO</em> e <em>INCONCLUSIVO</em>. O pacote baixado no detalhe do arquivo
+                traz o fonte, o caso de teste, os comandos e a saída, prontos para anexar a uma issue.
+                Estouro de <code>unsigned</code> não é acusado pelo UBSan do gcc. Custa uma execução extra
+                do ESBMC por BUG.</li>
             </ul></dd>
         </dl>
       </section>

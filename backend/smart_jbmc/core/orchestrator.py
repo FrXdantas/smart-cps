@@ -5,12 +5,13 @@ métricas (CASTLE + distribuição CWE). Devolve um RunResult serializável.
 """
 
 import os
+import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
-from . import classify, compiler, scanner, stubs
+from . import classify, compiler, reprodutor, scanner, stubs
 from .counterexample import (explain_counterexample, parse_esbmc_trace_text,
                             parse_jbmc_trace_json, pick_violation, stack_trace_text)
 from .metrics import aggregate_cwe, castle_score, infer_oracle_from_path
@@ -52,6 +53,9 @@ class TargetResult:
     # Contexto do grupo B do experimento (BMC + stack trace): ponto da falha e
     # cadeia de chamadas, sem valores. Ver counterexample.stack_trace_text.
     stack_trace: str | None = None
+    # Reprodutor (incremento 4): caso de teste do ESBMC + executável com sanitizer.
+    # Só para alvos C com BUG e a opção ligada na run. Ver core.reprodutor.gerar.
+    reprodutor: dict | None = None
 
 
 @dataclass
@@ -171,7 +175,8 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
                      unwinding_assertions=False, strategy=None,
                      unsigned_overflow=False, nan_check=False, include_dirs=None, propriedade=None,
                      link_unit=None, files=None,
-                     function=None, on_progress=None, should_cancel=None) -> RunResult:
+                     function=None, gerar_reprodutor=False, n_execucoes_tsan=5,
+                     on_progress=None, should_cancel=None) -> RunResult:
     """Roda a verificação. `on_progress(phase, done, total, current)` é chamado ao
     longo das fases (scanning / compiling / verifying / done) para feedback visual;
     `current` são os arquivos em verificação naquele momento (relativos à pasta).
@@ -256,6 +261,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         "unwinding_assertions": (strategy == "sound"),
         "unsigned_overflow": unsigned_overflow, "nan_check": nan_check, "propriedade": propriedade or "todas",
         "files": list(files or []),
+        "gerar_reprodutor": bool(gerar_reprodutor), "n_execucoes_tsan": int(n_execucoes_tsan),
     }
     _cb("compiling", 0, 0)
     stubs_cp = stubs.ensure_stubs()   # classpath p/ APIs SV-COMP/CProver (ou None)
@@ -336,6 +342,40 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         except Exception:  # noqa: BLE001 — sem a linha do tempo, vale o traço fatiado
             return None
 
+    contador_rep = {"n": 0}
+    lock_rep = threading.Lock()
+
+    def _reprodutor(tr, alvo, raw=None):
+        """RT2: alvo C com BUG e opção ligada -> caso de teste + sanitizer. Fora do tempo
+        medido da verificação (os tempos do reprodutor ficam no próprio registro)."""
+        if not (gerar_reprodutor and tr.status == "BUG"):
+            return tr
+        with lock_rep:
+            contador_rep["n"] += 1
+            idx = contador_rep["n"]
+        nome = re.sub(r"[^A-Za-z0-9_.-]+", "_", tr.target)[:80]
+        workdir = os.path.join(build_root, "reprodutor", f"{idx:03d}_{nome}")
+
+        def _caso(dir_saida):
+            return run_esbmc(alvo, unwind=unwind, timeout=timeout,
+                             concurrency=concurrency, race_check=race_check, solver=solver,
+                             strategy=strategy, unsigned_overflow=unsigned_overflow,
+                             nan_check=nan_check, propriedade=propriedade,
+                             include_dirs=include_dirs, function=function,
+                             max_mem_mb=mem_por_processo,
+                             extra_args=["--generate-ctest-testcase",
+                                         "--ctest-output-dir", dir_saida]).raw
+        try:
+            tr.reprodutor = reprodutor.gerar(
+                alvo, workdir, bug=tr.bug, cwe_id=tr.cwe_id, violation=tr.violation,
+                include_dirs=include_dirs, gerar_caso_de_teste=_caso,
+                n_execucoes_tsan=n_execucoes_tsan, timeout_execucao=min(60, max(10, timeout)),
+                raw_cex=raw)
+            tr.reprodutor["pasta"] = os.path.relpath(workdir, build_root)
+        except Exception as e:  # noqa: BLE001 — reprodutor nunca derruba a run
+            tr.reprodutor = {"veredito": "INCONCLUSIVO", "motivo": f"erro interno: {e}"}
+        return tr
+
     def do_esbmc(cfile):
         t = time.perf_counter()
         _em_verificacao(_rel(cfile), True)
@@ -349,8 +389,13 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
             raw_cex = _cex_com_threads(cfile, res.raw)
         finally:
             _em_verificacao(_rel(cfile), False)
-        return _build_target("esbmc", os.path.basename(cfile), cfile, res.raw, None,
-                             elapsed, raw_cex=raw_cex)
+        tr = _build_target("esbmc", os.path.basename(cfile), cfile, res.raw, None,
+                           elapsed, raw_cex=raw_cex)
+        _em_verificacao(_rel(cfile), True)
+        try:
+            return _reprodutor(tr, cfile, res.raw)
+        finally:
+            _em_verificacao(_rel(cfile), False)
 
     def do_esbmc_unit(files):
         # Verifica `files` como UMA unidade linkada (multi-arquivo). O alvo é
@@ -368,8 +413,13 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
             raw_cex = _cex_com_threads(files, res.raw)
         finally:
             _em_verificacao(label, False)
-        return _build_target("esbmc", label, files[0], res.raw, None,
-                             elapsed, unit_sources=list(files), raw_cex=raw_cex)
+        tr = _build_target("esbmc", label, files[0], res.raw, None,
+                           elapsed, unit_sources=list(files), raw_cex=raw_cex)
+        _em_verificacao(label, True)
+        try:
+            return _reprodutor(tr, files, res.raw)
+        finally:
+            _em_verificacao(label, False)
 
     total = len(jbmc_specs) + len(c) + (1 if link_files else 0)
     _cb("verifying", 0, total)
@@ -400,6 +450,12 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
 
     # --- agregações ---
     summary = {"total": len(results)}
+    if gerar_reprodutor:
+        # RT9: taxa de reprodução (eficiência da ferramenta) entre os alvos com BUG
+        reps = [r.reprodutor for r in results if r.reprodutor]
+        summary["reprodutor"] = {v: sum(1 for x in reps if x.get("veredito") == v)
+                                 for v in reprodutor.VEREDITOS}
+        summary["reprodutor"]["total"] = len(reps)
     for st in ("BUG", "SAFE", "UNKNOWN", "TIMEOUT", "ERROR", "COMPILE_FAIL",
                "NO_ENTRY_POINT"):
         summary[st] = sum(1 for r in results if r.status == st)

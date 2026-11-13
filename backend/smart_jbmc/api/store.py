@@ -90,6 +90,8 @@ def _execute(run_id: str, config: dict) -> None:
             link_unit=config.get("link_unit") or None,
             files=config.get("files") or None,
             function=config.get("function") or None,
+            gerar_reprodutor=bool(config.get("gerar_reprodutor", False)),
+            n_execucoes_tsan=int(config.get("n_execucoes_tsan") or 5),
             on_progress=_progress, should_cancel=lambda: is_cancelled(run_id),
         )
         record["status"] = "cancelled" if rr.cancelled else "done"

@@ -69,6 +69,11 @@ class RunRequest(BaseModel):
     function: str = ""
     # arquivos escolhidos no pop-up de envio (relativos à pasta). Vazio = todos.
     files: list[str] = []
+    # reprodutor (incremento 4): para cada alvo C com BUG, caso de teste do ESBMC e
+    # executável com sanitizer (TSan p/ corrida, ASan+UBSan p/ o resto). Opt-in: custa uma
+    # execução extra do ESBMC por BUG.
+    gerar_reprodutor: bool = False
+    n_execucoes_tsan: int = 5
 
 
 @router.get("/solvers")
@@ -100,6 +105,8 @@ def create_run(req: RunRequest, user: dict = Depends(current_user)):
     if req.propriedade not in PROPRIEDADES:
         raise HTTPException(status_code=400,
                             detail=f"propriedade inválida: {req.propriedade} (use {', '.join(PROPRIEDADES)})")
+    if not 1 <= req.n_execucoes_tsan <= 20:
+        raise HTTPException(status_code=400, detail="n_execucoes_tsan deve estar entre 1 e 20")
     if not _folder_belongs_to(user, req.folder):
         raise HTTPException(
             status_code=403,
@@ -207,6 +214,47 @@ def download_run_folder(run_id: str, fixed: bool = True, user: dict = Depends(cu
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{base}_{suffix}.zip"'},
     )
+
+
+@router.get("/{run_id}/reprodutor/{indice}")
+def download_reprodutor(run_id: str, indice: int, user: dict = Depends(current_user)):
+    """RT8: pacote do reprodutor de UM alvo (índice em result.targets), pronto para anexar
+    à issue: fonte verificado, caso de teste, cabeçalho nativo, comandos, saída e LEIA-ME."""
+    rec = store.get_run(run_id, owner_id=user["id"])
+    if rec is None:
+        raise HTTPException(status_code=404, detail="run não encontrada")
+    alvos = ((rec.get("result") or {}).get("targets") or [])
+    if not 0 <= indice < len(alvos) or not alvos[indice].get("reprodutor"):
+        raise HTTPException(status_code=404, detail="este alvo não tem reprodutor")
+    alvo, rep = alvos[indice], alvos[indice]["reprodutor"]
+    build = (store.RUNS_DIR / run_id / "build").resolve()
+    pasta = (build / str(rep.get("pasta") or "")).resolve()
+    if build not in pasta.parents or not pasta.is_dir():
+        raise HTTPException(status_code=404, detail="os arquivos do reprodutor não estão mais no servidor")
+    base = re.sub(r"[^A-Za-z0-9._-]", "_", f"reprodutor_{alvo.get('target') or indice}")[:100]
+    leia = [f"Reprodutor gerado pelo SMART CPS ({APP_REVISION})",
+            f"Alvo: {alvo.get('target')}",
+            f"Defeito (ESBMC): {alvo.get('bug')} {alvo.get('cwe_id') or ''}",
+            f"Violação: {(alvo.get('violation') or {}).get('file')}:{(alvo.get('violation') or {}).get('line')}",
+            f"Modo: {rep.get('modo')}   Sanitizer: {rep.get('sanitizer')}",
+            f"Veredito: {rep.get('veredito')}" + (f" ({rep.get('motivo')})" if rep.get("motivo") else ""),
+            f"Execuções: {rep.get('execucoes')}, reproduziu em {rep.get('reproduziu_em')}",
+            f"Tempos (s): {rep.get('tempos')}", "", "Comandos:"] + list(rep.get("comandos") or [])
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr(f"{base}/LEIA-ME.txt", "\n".join(leia) + "\n")
+        fontes = list(alvo.get("unit_sources") or []) or [alvo.get("source")]
+        for f in fontes:
+            if f and os.path.isfile(f):
+                z.write(f, arcname=f"{base}/fonte/{os.path.basename(f)}")
+        for dirpath, _, filenames in os.walk(pasta):
+            for fn in sorted(filenames):
+                full = Path(dirpath) / fn
+                if re.fullmatch(r"reprodutor(_\d+)?", fn) or fn.endswith(".o") or full.is_symlink():
+                    continue
+                z.write(full, arcname=f"{base}/{full.relative_to(pasta)}")
+    return Response(content=buf.getvalue(), media_type="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="{base}.zip"'})
 
 
 @router.get("/{run_id}/sarif")

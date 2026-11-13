@@ -194,6 +194,7 @@ async function launchRun(ev) {
     race_check: !!document.getElementById("f-race-check")?.checked,
     nan_check: !!document.getElementById("f-nan-check")?.checked,
     propriedade: document.getElementById("f-propriedade")?.value || "todas",
+    gerar_reprodutor: !!document.getElementById("f-reprodutor")?.checked,
   };
   // Opções de projeto (avançado): só incluídas quando preenchidas. As listas
   // vêm como texto (uma entrada por linha) e viram array; o backend ignora vazios.
@@ -330,7 +331,9 @@ function renderResults(rec) {
     summaryCard("ERROR", s.ERROR || 0) +
     (s.COMPILE_FAIL ? summaryCard("COMPILE_FAIL", s.COMPILE_FAIL) : "") +
     (s.NO_ENTRY_POINT ? summaryCard("SEM MAIN", s.NO_ENTRY_POINT) : "") +
-    summaryCard("CASTLE", m.castle_score ?? "—");
+    summaryCard("CASTLE", m.castle_score ?? "—") +
+    (s.reprodutor && s.reprodutor.total
+      ? summaryCard("REPRODUZIDOS", `${s.reprodutor.REPRODUZIDO || 0}/${s.reprodutor.total}`) : "");
 
   // avisos de compilação (unidades que não compilaram) — não somem mais em silêncio
   const warns = result.warnings || [];
@@ -359,7 +362,7 @@ function renderResults(rec) {
         </div>`).join("")
     : '<p class="text-muted small mb-0">Nenhum bug detectado.</p>';
 
-  curTargets = result.targets || [];
+  curTargets = (result.targets || []).map((t, i) => ({ ...t, _idx: i }));
   tgtPage = 1;
   renderTargetsTable();
 
@@ -684,9 +687,60 @@ function showDetail(t) {
     <div class="text-muted mt-1">${t.source || ""}</div>`;
   document.getElementById("detail-explanation").textContent =
     t.explanation || "Sem contraexemplo (alvo não vulnerável até o bound).";
+  renderReprodutor(t);
   const card = document.getElementById("detail-card");
   card.classList.remove("d-none");
   card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// Reprodutor (incremento 4): caso de teste do ESBMC + executável com sanitizer
+const REP_SELO = {
+  // reproduzido = defeito confirmado numa execução real (mesmo tom do BUG)
+  REPRODUZIDO: "selo selo-ruim", REPRODUZIDO_OUTRO_PONTO: "selo selo-aviso",
+  NAO_REPRODUZIDO: "selo selo-aviso", SEM_CASO_DE_TESTE: "selo selo-neutro",
+  FALHA_COMPILACAO: "selo selo-neutro", INCONCLUSIVO: "selo selo-neutro",
+};
+function renderReprodutor(t) {
+  const el = document.getElementById("detail-reprodutor");
+  const r = t.reprodutor;
+  if (!r) { el.classList.add("d-none"); el.innerHTML = ""; return; }
+  const tp = r.tempos || {};
+  const seg = (v) => (v == null ? "—" : `${v} s`);
+  const achados = (r.achados || []).map(a =>
+    `${escapeHtml(a.tipo)}: ${escapeHtml(a.mensagem || "")}` +
+    (a.variavel ? ` (variável <code>${escapeHtml(a.variavel)}</code>)` : "") +
+    (a.arquivo ? ` em ${escapeHtml(a.arquivo)}:${a.linha ?? "?"}` : "")).join("<br>");
+  const tent = (r.tentativas || []).map(x =>
+    `<tr><td>${escapeHtml(x.origem || "")}</td><td>${escapeHtml(x.executavel || "")}</td>
+     <td>${escapeHtml(x.veredito || "")}</td><td>${x.reproduziu_em}/${x.execucoes}</td></tr>`).join("");
+  el.innerHTML = `
+    <div class="titulo mb-1">Reprodutor</div>
+    <div class="small mb-2">
+      <span class="badge ${REP_SELO[r.veredito] || "selo selo-neutro"}">${escapeHtml(r.veredito || "")}</span>
+      <span class="ms-2">modo: ${escapeHtml(r.modo || "—")}</span>
+      <span class="ms-2">sanitizer: ${escapeHtml(r.sanitizer || "—")}</span>
+      ${r.variavel ? `<span class="ms-2">variável da corrida: <code>${escapeHtml(r.variavel)}</code></span>` : ""}
+      <span class="ms-2">execuções: ${r.reproduziu_em ?? 0}/${r.execucoes ?? 0} reproduziram</span>
+      ${r.motivo ? `<div class="text-muted mt-1">${escapeHtml(r.motivo)}</div>` : ""}
+    </div>
+    <table class="table table-sm small mb-2 w-auto">
+      <tr><th>caso de teste (ESBMC)</th><td>${seg(tp.caso_de_teste_s)}</td>
+          <th>compilação</th><td>${seg(tp.compilacao_s)}</td>
+          <th>execução</th><td>${seg(tp.execucao_s)}</td>
+          <th>total</th><td>${seg(tp.total_s)}</td></tr>
+    </table>
+    ${tent ? `<table class="table table-sm small mb-2 w-auto"><thead><tr><th>caso de teste</th>
+      <th>executável</th><th>veredito</th><th>reproduziu</th></tr></thead><tbody>${tent}</tbody></table>` : ""}
+    ${achados ? `<div class="small mb-2"><strong>Relato do sanitizer</strong><br>${achados}</div>` : ""}
+    ${r.caso_de_teste ? `<details class="small mb-2"><summary>caso de teste</summary>
+      <pre class="explanation">${escapeHtml(r.caso_de_teste)}</pre></details>` : ""}
+    <details class="small mb-2"><summary>comandos</summary>
+      <pre class="explanation">${escapeHtml((r.comandos || []).join("\n"))}</pre></details>
+    <details class="small mb-2"><summary>saída da execução</summary>
+      <pre class="explanation">${escapeHtml(r.saida || "")}</pre></details>
+    ${currentRunId && t._idx != null ? `<a class="btn btn-sm btn-outline-secondary"
+      href="/api/runs/${currentRunId}/reprodutor/${t._idx}">Baixar pacote do reprodutor (.zip)</a>` : ""}`;
+  el.classList.remove("d-none");
 }
 
 // ---------------- histórico ----------------
