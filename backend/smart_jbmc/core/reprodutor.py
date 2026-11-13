@@ -72,10 +72,12 @@ static void __smart_inviavel(const char *arq, int lin) {
 #define __ESBMC_assume(c) ((c) ? (void)0 : __smart_inviavel(__FILE__, __LINE__))
 #define __VERIFIER_assume(c) __ESBMC_assume(c)
 #define __VERIFIER_error() __smart_falha(__FILE__, __LINE__, "__VERIFIER_error")
-#define __ESBMC_atomic_begin() __smart_lock()
-#define __ESBMC_atomic_end() __smart_unlock()
-#define __VERIFIER_atomic_begin() __ESBMC_atomic_begin()
-#define __VERIFIER_atomic_end() __ESBMC_atomic_end()
+/* Funções, não macros: os programas do SV-COMP declaram o protótipo
+   "void __VERIFIER_atomic_begin(void);", que a macro sem parâmetro quebrava. */
+static void __ESBMC_atomic_begin(void) { __smart_lock(); }
+static void __ESBMC_atomic_end(void) { __smart_unlock(); }
+static void __VERIFIER_atomic_begin(void) { __smart_lock(); }
+static void __VERIFIER_atomic_end(void) { __smart_unlock(); }
 %(nondet)s
 #endif
 """
@@ -90,8 +92,8 @@ def cabecalho_nativo(definidos: set[str] | None = None) -> str:
     txt = (CABECALHO_NATIVO.replace("%(inviavel)d", str(SAIDA_INVIAVEL))
            .replace("%(nondet)s", "\n".join(linhas)))
     for nome in definidos:
-        txt = re.sub(rf"^#define {re.escape(nome)}\(.*$", f"/* {nome}: definido pelo programa */",
-                     txt, flags=re.M)
+        txt = re.sub(rf"^(?:#define |static void ){re.escape(nome)}\(.*$",
+                     f"/* {nome}: definido pelo programa */", txt, flags=re.M)
     return txt
 
 
@@ -390,7 +392,7 @@ def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
     except Exception as e:  # noqa: BLE001
         return fim("INCONCLUSIVO", f"gcc ausente: {e}")
 
-    base = [gcc, "-g", "-O0", "-w", "-pthread", *flags_sanitizer(san)]
+    base = [gcc, "-g", "-O0", "-w", "-fgnu89-inline", "-pthread", *flags_sanitizer(san)]
     incs = []
     for d in (include_dirs or []):
         incs += ["-I", d]

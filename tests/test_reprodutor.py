@@ -76,7 +76,7 @@ def test_sanitizer_pela_propriedade():
 def test_cabecalho_e_nondet_padrao():
     c = rp.cabecalho_nativo()
     assert "#define nondet_int __VERIFIER_nondet_int" in c
-    assert "_exit(77)" in c and "__ESBMC_atomic_begin()" in c
+    assert "_exit(77)" in c and "static void __ESBMC_atomic_begin(void)" in c
     assert "__attribute__((weak)) int __VERIFIER_nondet_int(void)" in rp.nondet_padrao()
 
 
@@ -301,3 +301,28 @@ def test_cabecalho_nao_conflita_com_programa_pre_processado(tmp_path):
     r = rp.gerar(str(prog), str(tmp_path / "r"), bug="Assertion Failure", cwe_id="CWE-617",
                  violation={"file": "pp.c", "line": 7}, gerar_caso_de_teste=caso)
     assert r["veredito"] == "REPRODUZIDO", r
+
+
+@pytest.mark.skipif(not TEM_GCC, reason="gcc ausente")
+def test_prototipo_atomico_e_inline_do_sv_comp(tmp_path):
+    """A1/A2 (rodada de 13/11): protótipo 'void __VERIFIER_atomic_begin(void);' quebrava a macro e
+    'inline void f()' sem extern não gerava símbolo a -O0 (undefined reference)."""
+    prog = tmp_path / "sv.c"
+    prog.write_text("void __VERIFIER_atomic_begin(void);\nvoid __VERIFIER_atomic_end(void);\n"
+                    "int x;\ninline void trava(){ __VERIFIER_atomic_begin(); x++; __VERIFIER_atomic_end(); }\n"
+                    "int main(void) { trava();\n"
+                    "  __ESBMC_assert(x == 2, \"x\"); return 0; }\n")
+
+    def caso(d):
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, "test_case.c"), "w").write("int __smart_vazio;\n")
+        return ""
+    r = rp.gerar(str(prog), str(tmp_path / "r"), bug="Assertion Failure", cwe_id="CWE-617",
+                 violation={"file": "sv.c", "line": 6}, gerar_caso_de_teste=caso)
+    assert r["veredito"] == "REPRODUZIDO", r
+
+
+def test_cabecalho_tira_funcao_atomica_definida_pelo_programa():
+    cab = rp.cabecalho_nativo({"__VERIFIER_atomic_begin"})
+    assert "static void __VERIFIER_atomic_begin(" not in cab
+    assert "static void __VERIFIER_atomic_end(" in cab
