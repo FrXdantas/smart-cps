@@ -38,7 +38,12 @@ def gerar(saida: Path, semente="0"):
                 for r in csv.DictReader(f):
                     if r["status"] != "REPAIRED" or not r["patch"]:
                         continue
-                    orig = saida / "trabalho" / conj_dir.name / "A" / r["arquivo"]
+                    # Com alvos_A.json o braço A não roda e não há trabalho/<conj>/A; a cópia do
+                    # original fica na pasta de trabalho do próprio braço (o patch vai para patches/).
+                    orig = next((p for p in (saida / "trabalho" / conj_dir.name / b / r["arquivo"]
+                                             for b in ("A", braco)) if p.exists()), None)
+                    if orig is None:
+                        sys.exit(f"original não encontrado: {conj_dir.name}/{r['arquivo']}")
                     patch = saida / r["patch"]
                     diff = difflib.unified_diff(
                         orig.read_text(encoding="utf-8", errors="ignore").splitlines(True),
