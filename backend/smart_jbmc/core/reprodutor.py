@@ -76,10 +76,27 @@ static void __smart_inviavel(const char *arq, int lin) {
 """
 
 
-def cabecalho_nativo() -> str:
-    linhas = [f"#define nondet_{t} __VERIFIER_nondet_{t}" for t in _NONDET]
-    return (CABECALHO_NATIVO.replace("%(inviavel)d", str(SAIDA_INVIAVEL))
-            .replace("%(nondet)s", "\n".join(linhas)))
+def cabecalho_nativo(definidos: set[str] | None = None) -> str:
+    """`definidos`: nomes que o próprio programa define (ex.: os harness do DSVerifier definem
+    __VERIFIER_assume); para esses a macro sai, senão quebraria a definição."""
+    definidos = definidos or set()
+    linhas = [f"#define nondet_{t} __VERIFIER_nondet_{t}" for t in _NONDET
+              if f"nondet_{t}" not in definidos]
+    txt = (CABECALHO_NATIVO.replace("%(inviavel)d", str(SAIDA_INVIAVEL))
+           .replace("%(nondet)s", "\n".join(linhas)))
+    for nome in definidos:
+        txt = re.sub(rf"^#define {re.escape(nome)}\(.*$", f"/* {nome}: definido pelo programa */",
+                     txt, flags=re.M)
+    return txt
+
+
+_DEFINICAO_RE = re.compile(r"^[ \t]*(?:static\s+)?(?:inline\s+)?[\w\s\*]+?\b"
+                           r"(__VERIFIER_assume|__VERIFIER_error|__VERIFIER_atomic_begin|"
+                           r"__VERIFIER_atomic_end|nondet_\w+)\s*\([^;{)]*\)\s*\{", re.M)
+
+
+def nomes_definidos(files) -> set[str]:
+    return {m.group(1) for f in files for m in _DEFINICAO_RE.finditer(_ler(f, 50_000_000) or "")}
 
 
 def nondet_padrao() -> str:
@@ -435,7 +452,7 @@ def gerar(alvo_files, workdir, *, bug, cwe_id, violation, include_dirs=None,
         cab = os.path.join(workdir, "smart_nativo.h")
         pad = os.path.join(workdir, "smart_nondet_padrao.c")
         with open(cab, "w", encoding="utf-8") as f:
-            f.write(cabecalho_nativo())
+            f.write(cabecalho_nativo(nomes_definidos(files)))
         with open(pad, "w", encoding="utf-8") as f:
             f.write(nondet_padrao())
         t = time.perf_counter()

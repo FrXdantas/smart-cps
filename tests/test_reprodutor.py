@@ -272,3 +272,12 @@ def test_assercao_com_threads_usa_tsan(tmp_path):
     assert r["sanitizer"] == "tsan"
     if rp.setarch_disponivel():
         assert r["veredito"] == "REPRODUZIDO", r
+
+
+def test_cabecalho_respeita_definicao_do_programa(tmp_path):
+    prog = tmp_path / "ds.c"
+    prog.write_text("void __VERIFIER_assume(int expression)\n{ if (!expression) {} }\nint main(void){return 0;}\n")
+    defs = rp.nomes_definidos([str(prog)])
+    assert defs == {"__VERIFIER_assume"}
+    cab = rp.cabecalho_nativo(defs)
+    assert "#define __VERIFIER_assume(" not in cab and "#define __ESBMC_assume(" in cab
