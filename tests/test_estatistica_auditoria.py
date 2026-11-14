@@ -79,3 +79,21 @@ def test_auditoria_gera_e_calcula(tmp_path):
     assert aud.kappa(s / "auditoria" / "a1.csv", s / "auditoria" / "a2.csv") == 1.0
     fin = list(csv.DictReader(open(s / "auditoria" / "auditoria_final.csv", encoding="utf-8")))
     assert fin[0]["final"] == "reparo_real"
+
+
+def test_auditoria_cega_e_solo(tmp_path):
+    linhas = [dict(id=str(i), conjunto="X", arquivo=f"com_bug/p{i}.c", bug="Overflow",
+                   braco=b, diff=f"diffs/{i:03d}.diff", classificacao="", observacao="")
+              for i, b in enumerate("BBCC", 1)]
+    orig = tmp_path / "auditoria.csv"
+    _csv(orig, aud.COLS, linhas)
+    copia = tmp_path / "autor.csv"
+    assert aud.cega(orig, copia) == 4
+    lidas = list(csv.DictReader(open(copia, encoding="utf-8")))
+    assert "braco" not in lidas[0]
+    for r, cl in zip(lidas, ("contorno", "reparo_real", "reparo_real", "")):
+        r["classificacao"] = cl
+    _csv(copia, list(lidas[0].keys()), lidas)
+    res = aud.solo(orig, copia)
+    assert res["B"][:2] == (1, 2) and res["C"][:2] == (0, 1) and res["total"][:2] == (1, 3)
+    assert 0.0 < res["total"][2] < res["total"][3] < 1.0

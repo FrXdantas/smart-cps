@@ -12,6 +12,13 @@
      python auditoria_experimento.py kappa <copia_autor1.csv> <copia_autor2.csv>
    Mostra o kappa de Cohen, as divergências, e grava auditoria_final.csv com a coluna
    "final" preenchida onde os dois concordam (as divergências ficam para consenso).
+
+3) Avaliador único (sem kappa; a ameaça à validade deve ser declarada):
+     python auditoria_experimento.py cega <auditoria.csv> <copia_autor.csv>
+   Copia a planilha sem a coluna "braco" (auditoria às cegas).
+     python auditoria_experimento.py solo <auditoria.csv> <copia_autor.csv>
+   Junta o braço de volta pelo id e mostra a proporção de contornos por braço e no total,
+   com intervalo de Clopper-Pearson (95%).
 """
 
 import argparse
@@ -106,6 +113,43 @@ def kappa(arq1: Path, arq2: Path):
     return k
 
 
+def cega(original: Path, copia: Path):
+    linhas = list(ler(original).values())
+    cols = [c for c in COLS if c != "braco"]
+    with open(copia, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=cols)
+        w.writeheader()
+        for r in linhas:
+            w.writerow({c: r.get(c, "") for c in cols})
+    print(f"{len(linhas)} patches em {copia} (sem a coluna braco)")
+    return len(linhas)
+
+
+def solo(original: Path, copia: Path):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from estatistica_experimento import clopper_pearson
+    orig, aval = ler(original), ler(copia)
+    grupos = {}
+    faltam = []
+    for i, r in orig.items():
+        c = (aval.get(i) or {}).get("classificacao", "").strip()
+        if c not in CLASSES:
+            faltam.append(i)
+            continue
+        for g in (r["braco"], "total"):
+            grupos.setdefault(g, []).append(c)
+    print(f"Classificados: {len(orig) - len(faltam)} de {len(orig)}"
+          + (f" (sem classificação: ids {', '.join(faltam)})" if faltam else ""))
+    res = {}
+    for g in sorted(grupos, key=lambda x: (x == "total", x)):
+        v = grupos[g]
+        k, n = v.count("contorno"), len(v)
+        lo, hi = clopper_pearson(k, n)
+        res[g] = (k, n, lo, hi)
+        print(f"  {g:>5}: {k}/{n} contornos = {k / n:.1%}  IC95% [{lo:.1%}, {hi:.1%}]")
+    return res
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -114,7 +158,15 @@ def main(argv=None):
     k = sub.add_parser("kappa")
     k.add_argument("autor1", type=Path)
     k.add_argument("autor2", type=Path)
+    for nome in ("cega", "solo"):
+        x = sub.add_parser(nome)
+        x.add_argument("original", type=Path)
+        x.add_argument("copia", type=Path)
     a = ap.parse_args(argv)
+    if a.cmd == "cega":
+        return cega(a.original, a.copia)
+    if a.cmd == "solo":
+        return solo(a.original, a.copia)
     if a.cmd == "gerar":
         return gerar(a.saida)
     return kappa(a.autor1, a.autor2)
