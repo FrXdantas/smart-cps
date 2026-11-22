@@ -157,6 +157,24 @@ O arquivo `smartcps.env` contém senhas e chaves e não deve ser versionado; ele
 está listado no `.gitignore`.
 
 
+## Defeitos relatados com a ferramenta
+
+Defeitos encontrados pelo ESBMC em código de projetos de sistemas embarcados, sem
+alteração do código, e confirmados pelo reprodutor da ferramenta (execução real com
+sanitizer). Cada relato leva o reprodutor e uma correção testada.
+
+| Issue | Projeto | Defeito | Reprodução |
+|---|---|---|---|
+| [#1539](https://github.com/FreeRTOS/FreeRTOS-Kernel/issues/1539) | FreeRTOS-Kernel | corrida em `xSchedulerEnd` e `xTimerTickThreadShouldRun` na porta POSIX | TSan 5/5 |
+| [#1544](https://github.com/FreeRTOS/FreeRTOS-Kernel/issues/1544) | FreeRTOS-Kernel | `event_delete()` destrói mutex travado por thread cancelada em `event_wait()` | TSan 5/5 |
+| [#1545](https://github.com/FreeRTOS/FreeRTOS-Kernel/issues/1545) | FreeRTOS-Kernel | thread de tick lê `pxCurrentTCB` enquanto `vTaskSwitchContext()` escreve | TSan 20/20 |
+| [#1754](https://github.com/bitcraze/crazyflie-firmware/issues/1754) | crazyflie-firmware | setpoint NaN leva o integrador do PID ao limite e a saída fica saturada | ASan/UBSan |
+
+Para a #1539, um colaborador externo abriu o
+[PR #1543](https://github.com/FreeRTOS/FreeRTOS-Kernel/pull/1543), que usa o
+reprodutor da ferramenta como teste.
+
+
 ## Problemas comuns
 
 | Situação | Solução |
