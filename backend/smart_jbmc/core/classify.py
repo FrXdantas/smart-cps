@@ -194,9 +194,18 @@ def esbmc_timed_out(text: str) -> bool:
     return re.search(r"^ERROR: Timed out", text, re.M) is not None
 
 
+# Aviso do ESBMC em C pré-processado (.i do SV-COMP): a glibc expandida declara
+# stdin/stdout/stderr com outro tipo que o modelo do ESBMC. O ESBMC escolhe uma das
+# definições e segue até o veredito; não é erro de ferramenta. Até a 2.10-cps essas
+# linhas viravam ERROR: programa SAFE saía ERROR no grupo A e patch correto saía
+# ERROR no reparo (achado de 27/11).
+_ERRO_INOFENSIVO_RE = re.compile(
+    r"^ERROR: conflicting definition for variable '(?:stdin|stdout|stderr)'\s*$", re.M)
+
+
 def has_error(text: str) -> bool:
     """Erro do verificador (flag inválida, parse error) — distinto de falha."""
-    if re.search(r"^ERROR:", text, re.M):
+    if re.search(r"^ERROR:", _ERRO_INOFENSIVO_RE.sub("", text or ""), re.M):
         return True
     # Erro reportado DENTRO do JSON (--json-ui do JBMC): sem isto, um verificador
     # que morre no meio (ex.: estouro do teto de memória durante "Building error
