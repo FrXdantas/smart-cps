@@ -6,7 +6,7 @@
   <title>Ajuda: SMART ESBMC / JBMC rv. 2.7-cps</title>
   <script src="js/tema.js?v=1"></script>
   <link href="vendor/bootstrap.min.css" rel="stylesheet">
-  <link href="css/styles.css?v=17" rel="stylesheet">
+  <link href="css/styles.css?v=25" rel="stylesheet">
   <style>
     .ajuda-indice { position: sticky; top: 1rem; font-size: .9rem; }
     .ajuda-indice a { display: block; padding: .2rem 0; color: var(--texto-suave); text-decoration: none; }
@@ -205,7 +205,12 @@ int main(void) {
                 <em>FALHA_COMPILACAO</em> e <em>INCONCLUSIVO</em>. O pacote baixado no detalhe do arquivo
                 traz o fonte, o caso de teste, os comandos e a saída, prontos para anexar a uma issue.
                 Estouro de <code>unsigned</code> não é acusado pelo UBSan do gcc. Custa uma execução extra
-                do ESBMC por BUG.</li>
+                do ESBMC por BUG.
+                <br>O resumo da run mostra o <em>funil do reprodutor</em>: dos arquivos com BUG, quantos
+                tiveram caso de teste gerado, quantos compilaram com o sanitizer, quantos executaram até o
+                fim (sem passar do tempo) e quantos foram reproduzidos no ponto do contraexemplo. Cada
+                linha traz a porcentagem sobre o total de BUG e sobre a etapa anterior, o que mostra em
+                que etapa a cadeia perde mais casos. Os reproduzidos em outro ponto aparecem à parte.</li>
             </ul></dd>
         </dl>
       </section>

@@ -33,6 +33,41 @@ MAX_CASOS = 5
 VEREDITOS = ("REPRODUZIDO", "REPRODUZIDO_OUTRO_PONTO", "NAO_REPRODUZIDO", "SEM_CASO_DE_TESTE",
              "FALHA_COMPILACAO", "INCONCLUSIVO")
 
+
+def funil(contagem: dict | None) -> list[dict]:
+    """Funil do reprodutor: quantos BUG passam por cada etapa da cadeia
+    contraexemplo -> caso de teste -> compilação com sanitizer -> execução -> reprodução.
+
+    `contagem` é o summary["reprodutor"] (um número por veredito + total). Cada veredito
+    marca a etapa em que o alvo parou: SEM_CASO_DE_TESTE antes do caso de teste,
+    FALHA_COMPILACAO antes da execução, INCONCLUSIVO na execução (passou do tempo ou o
+    sanitizer não subiu). A última etapa conta só REPRODUZIDO; o sanitizer acusando
+    outro ponto vai à parte (`outro_ponto`), porque não confirma o contraexemplo.
+    """
+    c = contagem or {}
+    total = int(c.get("total") or 0)
+    if not total:
+        return []
+    caso = total - int(c.get("SEM_CASO_DE_TESTE") or 0)
+    compilou = caso - int(c.get("FALHA_COMPILACAO") or 0)
+    executou = compilou - int(c.get("INCONCLUSIVO") or 0)
+    etapas = [
+        ("bug", "BUG com contraexemplo", total),
+        ("caso_de_teste", "caso de teste gerado", caso),
+        ("compilou", "compilou com o sanitizer", compilou),
+        ("executou", "executou até o fim", executou),
+        ("reproduzido", "reproduzido no ponto do contraexemplo", int(c.get("REPRODUZIDO") or 0)),
+    ]
+    out = []
+    anterior = total
+    for chave, rotulo, n in etapas:
+        out.append({"etapa": chave, "rotulo": rotulo, "n": n,
+                    "pct_bug": round(100 * n / total, 1),
+                    "pct_etapa": round(100 * n / anterior, 1) if anterior else 0.0})
+        anterior = n
+    out[-1]["outro_ponto"] = int(c.get("REPRODUZIDO_OUTRO_PONTO") or 0)
+    return out
+
 # Tipos das funções não deterministas (convenção SV-COMP e ESBMC).
 _NONDET = {
     "int": "int", "uint": "unsigned int", "unsigned": "unsigned int", "char": "char",

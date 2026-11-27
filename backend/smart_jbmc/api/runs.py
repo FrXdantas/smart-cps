@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from .. import APP_REVISION
 from ..auth.deps import current_user
 from ..core.config import PROJECT_ROOT
+from ..core.reprodutor import funil as reprodutor_funil
 from ..core.sarif import build_sarif
 from ..core.verifiers import available_solvers
 from . import repair_store, store
@@ -162,7 +163,17 @@ def get_run(run_id: str, user: dict = Depends(current_user)):
     rec = dict(rec)
     rec["folder_label"] = folder_label(
         (rec.get("config") or {}).get("folder"), rec.get("owner_login"))
+    _completar_funil(rec)
     return rec
+
+
+def _completar_funil(rec: dict) -> None:
+    """Runs gravadas antes da 2.9-cps não têm o funil do reprodutor: calcula na leitura,
+    a partir das contagens por veredito que já estão no resumo."""
+    s = (rec.get("result") or {}).get("summary")
+    if isinstance(s, dict) and s.get("reprodutor") and "reprodutor_funil" not in s:
+        rec["result"] = dict(rec["result"])
+        rec["result"]["summary"] = {**s, "reprodutor_funil": reprodutor_funil(s["reprodutor"])}
 
 
 @router.get("/{run_id}/download")

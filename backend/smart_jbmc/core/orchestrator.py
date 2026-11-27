@@ -456,6 +456,7 @@ def run_verification(folder, *, unwind=5, timeout=60, jobs=4, solver="boolector"
         summary["reprodutor"] = {v: sum(1 for x in reps if x.get("veredito") == v)
                                  for v in reprodutor.VEREDITOS}
         summary["reprodutor"]["total"] = len(reps)
+        summary["reprodutor_funil"] = reprodutor.funil(summary["reprodutor"])
     for st in ("BUG", "SAFE", "UNKNOWN", "TIMEOUT", "ERROR", "COMPILE_FAIL",
                "NO_ENTRY_POINT"):
         summary[st] = sum(1 for r in results if r.status == st)

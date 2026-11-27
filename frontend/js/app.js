@@ -288,6 +288,29 @@ function finishRun(rec) {
 // ---------------- renderização ----------------
 // Resumo da run: uma faixa só, números em cor neutra. O status de cada alvo já
 // aparece colorido na tabela; repetir a cor aqui só competia com ela.
+// Funil do reprodutor: quantos BUG chegam a cada etapa (contraexemplo -> caso de
+// teste -> compilação -> execução -> reprodução). Vem pronto do servidor.
+function renderFunil(etapas) {
+  const el = document.getElementById("reprodutor-funil");
+  if (!el) return;
+  if (!etapas || !etapas.length) { el.classList.add("d-none"); el.innerHTML = ""; return; }
+  const pct = (x) => String(x).replace(".", ",");
+  const ultima = etapas[etapas.length - 1];
+  el.classList.remove("d-none");
+  el.innerHTML =
+    `<div class="small text-body-secondary mb-1">Funil do reprodutor (por BUG)</div>` +
+    etapas.map((e, i) => `
+      <div class="funil-linha">
+        <span class="funil-rotulo">${escapeHtml(e.rotulo)}</span>
+        <span class="funil-barra"><span style="width:${e.pct_bug}%"></span></span>
+        <span class="funil-n">${e.n}</span>
+        <span class="funil-pct">${pct(e.pct_bug)}%${i ? ` <span class="text-body-secondary">(${pct(e.pct_etapa)}% da etapa anterior)</span>` : ""}</span>
+      </div>`).join("") +
+    (ultima.outro_ponto
+      ? `<div class="small text-body-secondary mt-1">${ultima.outro_ponto} com o sanitizer acusando outro ponto (não contam como reproduzidos).</div>`
+      : "");
+}
+
 function summaryCard(label, value) {
   return `<div class="resumo-item"><span class="valor">${value}</span><span class="rotulo">${label}</span></div>`;
 }
@@ -334,6 +357,8 @@ function renderResults(rec) {
     summaryCard("CASTLE", m.castle_score ?? "—") +
     (s.reprodutor && s.reprodutor.total
       ? summaryCard("REPRODUZIDOS", `${s.reprodutor.REPRODUZIDO || 0}/${s.reprodutor.total}`) : "");
+
+  renderFunil(s.reprodutor_funil);
 
   // avisos de compilação (unidades que não compilaram) — não somem mais em silêncio
   const warns = result.warnings || [];
