@@ -27,7 +27,10 @@ LANG_BY_EXT.update({ext: "C++" for ext in CPP_EXTS})
 # Se o patch usa o símbolo sem incluir o header, injetamos o #include antes de
 # compilar. Não altera a lógica do reparo — só evita que um header esquecido
 # invalide um patch semanticamente correto (caso recorrente: INT_MAX sem
-# <limits.h>). Includes redundantes em C são inofensivos.
+# <limits.h>). Includes redundantes em C são inofensivos, EXCETO em código já
+# pré-processado (.i do SV-COMP): lá a libc já está expandida no arquivo e o header
+# do ESBMC redefine size_t/FILE/div_t -> PARSING ERROR. Até a 2.9-cps isso virava
+# ERROR em todo patch do SV-COMP (achado de 27/11: braços B/C do A1 e A2).
 _C_SYMBOL_HEADERS = [
     (r"\b(INT_MAX|INT_MIN|LONG_MAX|LONG_MIN|UINT_MAX|ULONG_MAX|CHAR_BIT)\b", "limits.h"),
     (r"\b(malloc|free|calloc|realloc|size_t|NULL)\b", "stdlib.h"),
@@ -36,12 +39,29 @@ _C_SYMBOL_HEADERS = [
 ]
 
 
+# Sinais de unidade já pré-processada: marcadores de linha do cpp, typedefs
+# internos da glibc (__u_char, __int32_t...) ou o próprio arquivo declarando size_t
+# (drivers do SV-COMP), que conflita com o size_t do header do ESBMC.
+_PREPROCESSADO_RE = re.compile(
+    r'^#\s*\d+\s+"|^\s*(?:__extension__\s+)?typedef\b[^;\n]*\b__(?:u_char|int32_t|uint32_t|off_t|pid_t)\b'
+    r'|^\s*typedef\b[^;\n]*\bsize_t\s*;',
+    re.M)
+
+
+def codigo_preprocessado(code: str) -> bool:
+    """True se o C já passou pelo pré-processador (a libc está expandida no arquivo)."""
+    return bool(_PREPROCESSADO_RE.search(code or ""))
+
+
 def ensure_c_headers(code: str) -> str:
     """Prepend os #include faltantes para símbolos da stdlib usados no patch (C).
 
     Etapa determinística de normalização; reportar como tal na avaliação (não é
     reparo semântico — não conserta o bug, só garante que a lógica do LLM compile).
+    Não mexe em código pré-processado: as declarações já estão no próprio arquivo.
     """
+    if codigo_preprocessado(code):
+        return code
     missing = []
     for pattern, header in _C_SYMBOL_HEADERS:
         inc = f"#include <{header}>"
